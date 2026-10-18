@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>First Flight</title>
+<meta name="description" content="Interactive Three.js and WebXR aviation training lab: hangar systems, walkaround, ramp and cargo safety, cabin safety and flight.">
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#0f1d27">
+<link rel="icon" type="image/png" href="icons/favicon-64.png">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="First Flight">
+<link rel="stylesheet" href="xr/lab.css">
+<script type="importmap">
+{ "imports": {
+  "three": "./vendor/three/build/three.module.js",
+  "three/addons/": "./vendor/three/examples/jsm/"
+} }
+</script>
+</head>
+<body>
+<div id="stage"></div>
+
+<header id="top">
+  <a class="brand" href="index.html" target="_top" title="Back to First Flight">FIRST FLIGHT<span>XR TRAINING LAB</span></a>
+  <nav id="tabs" aria-label="Training stations"></nav>
+  <div class="right">
+    <select id="region" aria-label="Flying region" hidden></select>
+    <button id="arBtn" hidden>View in your space</button>
+    <button id="vrBtn" disabled>Checking VR…</button>
+    <button id="fsBtn" title="Full screen" aria-label="Full screen">⛶</button>
+  </div>
+</header>
+
+<aside id="panel" aria-live="polite">
+  <button id="panelToggle" aria-label="Collapse or expand the lesson panel">▾</button>
+  <div id="pTag" class="tag"></div>
+  <h1 id="pTitle"></h1>
+  <div id="pText"></div>
+  <div id="pActions"></div>
+  <div id="pProgress" hidden><div class="bar"><i></i></div><span></span></div>
+  <small id="pFoot"></small>
+</aside>
+
+<div id="hud" hidden></div>
+<div id="touch" hidden>
+  <div class="pad">
+    <button data-key="ArrowDown" aria-label="Nose up">▲<small>nose up</small></button>
+    <button data-key="ArrowLeft" aria-label="Bank left">◀</button>
+    <button data-key="ArrowRight" aria-label="Bank right">▶</button>
+    <button data-key="ArrowUp" aria-label="Nose down">▼<small>nose down</small></button>
+  </div>
+  <label class="throttle">Power<input id="throttle" type="range" min="0" max="100" value="62" aria-label="Engine power"><span id="throttleVal">62%</span></label>
+</div>
+<div id="hint"></div>
+<div id="toast" role="status"></div>
+<div id="loading" class="show"><div class="ld"><div class="ld-mark">✈</div><div class="ld-name">FIRST FLIGHT</div><div id="ldText">Loading the training lab…</div><div class="ld-bar"><i></i></div><noscript>This lab needs JavaScript and WebGL.</noscript></div></div>
+
+<script type="module" src="xr/main.js"></script>
+<script>if ('serviceWorker' in navigator && location.protocol === 'https:') addEventListener('load', () => navigator.serviceWorker.register('sw.js').catch(() => {}));</script>
+
+</body>
+</html>

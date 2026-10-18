@@ -1,0 +1,6 @@
+reference/
+store/trailer/
+node_modules/
+frames/
+*.zip
+.DS_Store
