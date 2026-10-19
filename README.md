@@ -3,7 +3,7 @@
 A Progressive Web App built on Three.js and WebXR, published by PenGame Publishing, LLC.
 
 * `lab.html` is **the app**: a title screen, five training stations, settings, VR and offline play.
-* `index.html` is the **Aviation Careers & New-Hire Learning Hub** website, with the 3D lab embedded.
+* `index.html` is the **Aviation Careers & New-Hire Learning Hub** website, with the 3D lab embedded and the **Aviation Maintenance Center** (`maintenance-data.js`, `maintenance.js`): maintenance careers, the A&P pathway, tutorials and technician tools.
 
 ## Run it
 * Upload the folder to any static HTTPS host. Leave out `store/`, `reference/` and `tools/`.

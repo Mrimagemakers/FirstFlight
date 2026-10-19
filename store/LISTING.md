@@ -29,7 +29,7 @@ First Flight puts you on the ramp, in the cabin, in the maintenance hangar and i
 Play seated or standing in a Meta Quest headset with teleport, snap turning and smooth movement. Floating lesson panels go wherever you need them. The same experience runs on desktop, laptop, tablet and phone with mouse, touch or a gamepad.
 
 **Plan a real career**
-The built-in Aviation Careers & New-Hire Hub covers 15 airport and airline roles, a 90-day new-hire plan, a Day-1 orientation agenda, orientation scenarios and practical tools such as an application tracker and a training passport. It links to official FAA, IATA, OSHA and employer resources.
+The built-in Aviation Careers & New-Hire Hub covers 15 airport and airline roles, a 90-day new-hire plan, a Day-1 orientation agenda, orientation scenarios and practical tools such as an application tracker and a training passport. Its Aviation Maintenance Center adds 14 maintenance careers, a step-by-step FAA mechanic (A&P) pathway, 11 interactive tutorials on tool control, technical data, records, torque, safety wire, rivets, human factors, corrosion, NDT, inspections and hangar safety, and working technician tools. It links to official FAA, IATA, OSHA and employer resources.
 
 First Flight is an educational simulation. It does not provide flight-training credit, certification, airport access or employment qualification.
 
@@ -39,6 +39,7 @@ First Flight is an educational simulation. It does not provide flight-training c
 - 6 flying regions and 4 flight missions
 - 11 workplace safety scenarios and FOD, cabin and tool-control challenges
 - Careers hub with 15 roles, a 90-day plan and new-hire tools
+- Aviation Maintenance Center: 14 maintenance careers, the FAA A&P pathway, 11 interactive shop-skill tutorials and technician calculators (torque, rivets, units, ATA lookup, logbook entries)
 - Comfort options: teleport, snap or smooth turning, seated play
 - Works offline after the first load. No accounts, ads or tracking.
 

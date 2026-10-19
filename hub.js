@@ -86,7 +86,7 @@
 </div>
 <div class="section-head"><h2>Three ways to learn</h2><span class="eyebrow muted">EXPLORE · PREPARE · PRACTISE</span></div>
 <div class="pillars">
-  <article class="card image-card">${img('ramp-agent', 'A ramp service view with a belt loader at an open cargo door')}<div class="image-card-body"><span class="num">01 / CAREERS & NEW HIRES</span><h3>Plan your aviation career</h3><p>Six entry-level roles, nine experienced paths, a 90-day new-hire plan, a Day-1 agenda and seven practical tools.</p><button class="text-btn" onclick="go('hub')">Open the hub →</button></div></article>
+  <article class="card image-card">${img('ramp-agent', 'A ramp service view with a belt loader at an open cargo door')}<div class="image-card-body"><span class="num">01 / CAREERS & NEW HIRES</span><h3>Plan your aviation career</h3><p>Six entry-level roles, nine experienced paths, a 90-day new-hire plan, a Day-1 agenda, practical tools and a full aviation maintenance center.</p><button class="text-btn" onclick="go('hub')">Open the hub →</button> <button class="text-btn" onclick="go('mx')">Maintenance center →</button></div></article>
   <article class="card image-card">${img('lab-flight', 'A training airplane flying over an alpine valley in the First Flight 3D lab')}<div class="image-card-body"><span class="num">02 / XR TRAINING LAB</span><h3>Practise in 3D and VR</h3><p>Walk the ramp and collect FOD, find cabin safety equipment, explore aircraft systems, and fly six realistic regions.</p><button class="text-btn" onclick="go('sim')">Enter the lab →</button></div></article>
   <article class="card image-card">${img('cockpit', 'The instrument panel of a training airplane cockpit')}<div class="image-card-body"><span class="num">03 / PILOT ACADEMY</span><h3>Keep your pilot dream flying</h3><p>Ground-school chapters, courses, flashcards, sample tests and an aviation encyclopedia for future pilots.</p><button class="text-btn" onclick="go('learn')">Open the academy →</button></div></article>
 </div>`;
@@ -109,6 +109,7 @@
     ['scenarios', 'Orientation scenarios', `${p.scenarios} of ${HUB_SCENARIOS.length} complete · practise each one again inside the 3D lab.`, 'safety'],
     ['learning', 'Videos & resources', `${p.videos} of ${HUB_VIDEOS.length} activities done · FAA, IATA, OSHA and NATA resources.`, 'flight-attendant'],
     ['jobs', 'Job search', 'Employer career portals and a reminder of what to check before you apply.', 'station-manager'],
+    ['mx', 'Aviation maintenance', 'Maintenance careers, the A&P pathway, shop-skill tutorials and technician calculators.', 'mx-walkaround'],
   ].map(([pg, t, d, im]) => `<button class="hub-tile" onclick="go('${pg}')">${img(im, t)}<span><b>${t}</b><small>${d}</small></span></button>`).join('')}
 </div>
 <div class="note"><strong>How authorization works</strong><p>Use four clear learning statuses: <b>Not started → Learning → Supervised practice → Authorized for the specified task.</b> Course completion and operational authorization are recorded separately. Videos support learning; they don’t replace employer-required instruction or practical qualification.</p></div>`;
@@ -259,7 +260,7 @@ ${Object.entries(HUB_TOOLS).map(([k, t]) => `<button class="tool-tile" onclick="
 <h4>Existing qualifications</h4><div class="chips">${chips('quals', HUB_SELECTOR.quals)}</div>
 <h4>Training interests</h4><div class="chips">${chips('interests', HUB_SELECTOR.interests)}</div>
 </div><div class="sel-results"><h3>Roles to research first</h3>${scores.map(({ r, sc }) => `<div class="match"><div class="mbar"><i style="width:${Math.round(sc / max * 100)}%"></i></div><b>${esc(r.title)}</b><small>${esc(r.does)}</small><div class="row"><button class="text-btn" onclick="go('paths')">Details →</button><button class="text-btn" onclick="hubTrack('${esc(r.title)}')">+ Add to tracker</button></div></div>`).join('')}
-<p class="small muted">Your choices are saved in this browser.${s.location ? ' Search employer portals for roles near ' + esc(s.location) + '.' : ''}</p></div></div>`;
+${s.interests.includes('Maintenance') || s.quals.includes('Mechanical or technical training') ? `<p class="note-inline small">Interested in maintenance? See all ${typeof MX_ROLES === 'object' ? MX_ROLES.length : ''} <button class="text-btn" onclick="go('mxcareers')">aviation maintenance careers →</button></p>` : ''}<p class="small muted">Your choices are saved in this browser.${s.location ? ' Search employer portals for roles near ' + esc(s.location) + '.' : ''}</p></div></div>`;
   }
   window.hubSel = (k, v) => { const a = hub.selector[k]; const i = a.indexOf(v); if (i < 0) a.push(v); else a.splice(i, 1); saveHub(); selectorPage(); };
   window.hubSelText = (k, v) => { hub.selector[k] = v; saveHub(); };

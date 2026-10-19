@@ -145,7 +145,7 @@ export class HangarStation {
     const board = this.toolBoard = new THREE.Group(); board.position.set(15.5, 2.05, 10.98); board.rotation.y = Math.PI; props.add(board);
     this.boardCanvas = canvasTexture(1024, 512, null);
     this.boardMesh = mesh(new THREE.PlaneGeometry(3.0, 1.5), new THREE.MeshStandardMaterial({ map: this.boardCanvas.texture, roughness: 0.8 }), board, { cast: false });
-    box(board, [3.1, 1.6, 0.04], [0, 0, 0.03], M.darkMetal);
+    box(board, [3.1, 1.6, 0.04], [0, 0, -0.03], M.darkMetal);
     // fire extinguisher on stand
     const ext = new THREE.Group(); ext.position.set(-20.6, 0, -6); props.add(ext);
     cyl(ext, 0.13, 0.13, 0.62, [0, 0.55, 0], M.red, null, 24);
