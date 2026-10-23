@@ -254,11 +254,13 @@ export class Lab {
   }
 
   /** Put the XR rig at the station's spawn point. */
-  placeXR() {
+  placeXR(keepPanel = false) {
     const s = this.station?.xrSpawn?.(this) || { position: new THREE.Vector3(0, 0, 4), yaw: 0 };
     this.rig.position.copy(s.position);
     this.rig.rotation.set(0, s.yaw || 0, 0);
-    this.ui.vr.summon();
+    if (this.stationKey !== 'flight') this.xr.placed(s.position.y);
+    this.xr.updateHints();
+    if (!keepPanel) this.ui.vr.place();
   }
 
   // ------------------------------------------------------------------ XR sessions

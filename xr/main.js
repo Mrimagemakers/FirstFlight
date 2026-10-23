@@ -30,6 +30,7 @@ class Station {
   xrSpawn(lab) { return this.impl?.xrSpawn?.(lab); }
   xrBounds(p) { return this.impl?.xrBounds?.(p); }
   xrSelect(c) { return this.impl?.xrSelect?.(c); }
+  xrButton(name) { return this.impl?.xrButton?.(name); }
   enterAR(lab) { return this.impl?.enterAR?.(lab); }
   exitAR(lab) { return this.impl?.exitAR?.(lab); }
   onPick(r) { return this.impl?.onPick?.(r); }
@@ -65,11 +66,11 @@ async function boot() {
   lab.register('cabin', station('Cabin safety', () => import('./stations/cabin.js').then(m => m.CabinStation)));
   lab.register('flight', station('Flight', () => import('./stations/flight.js').then(m => m.FlightStation)));
   ui.setTabs([
-    { key: 'hangar', num: '01', short: 'Systems lab', title: 'Hangar systems lab' },
-    { key: 'walkaround', num: '02', short: 'Walkaround', title: 'Preflight walkaround' },
-    { key: 'ramp', num: '03', short: 'Ramp & cargo', title: 'Ramp, cargo and FOD safety' },
-    { key: 'cabin', num: '04', short: 'Cabin', title: 'Cabin safety and appearance' },
-    { key: 'flight', num: '05', short: 'Fly', title: 'Flight practice' },
+    { key: 'hangar', num: '01', short: 'Systems lab', title: 'Hangar systems lab', blurb: 'Engine, fuel, electrical and tool control' },
+    { key: 'walkaround', num: '02', short: 'Walkaround', title: 'Preflight walkaround', blurb: 'Eight checks around the airplane' },
+    { key: 'ramp', num: '03', short: 'Ramp & cargo', title: 'Ramp, cargo and FOD safety', blurb: 'Find FOD, danger zones and scenarios' },
+    { key: 'cabin', num: '04', short: 'Cabin', title: 'Cabin safety and appearance', blurb: 'Safety equipment and cabin checks' },
+    { key: 'flight', num: '05', short: 'Fly', title: 'Flight practice', blurb: 'Four missions over six regions' },
   ]);
 
   // ----------------------------------------------------------- XR buttons

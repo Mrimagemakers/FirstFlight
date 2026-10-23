@@ -634,7 +634,7 @@ float fHash(vec2 p){ return fract(sin(dot(p, vec2(41.3, 289.1))) * 43758.5453); 
       tag: `05 · Flight practice · ${REGIONS[this.region].name}`,
       title: m.title,
       html: `<p>${m.brief}</p><p class="src">Small, patient corrections work best. Pitch and power work together; bank turns the airplane. This simplified model omits wind, rudder, trim forces, real stall behaviour and aircraft-specific performance.</p>`,
-      vrText: m.brief + ' Left stick flies, right stick sets power, trigger starts or pauses. Grip brings this panel.',
+      vrText: m.brief + ' Left stick flies, right stick sets power, A starts or pauses the flight and B recenters your seat.',
       buttons: [
         { label: this.running ? 'Pause flight' : 'Start flight', primary: true, onClick: () => this.toggleRun() },
         { label: 'Reset', onClick: () => this.resetFlight() },
@@ -649,7 +649,8 @@ float fHash(vec2 p){ return fract(sin(dot(p, vec2(41.3, 289.1))) * 43758.5453); 
   }
 
   xrSpawn() { return { position: this.plane.position.clone(), yaw: 0 }; }
-  xrSelect() { this.toggleRun(); return true; }
+  /** A starts or stops the engine; B recenters the seat. The trigger stays free for the menu. */
+  xrButton(name) { if (name === 'a') this.toggleRun(); if (name === 'b') { this.recenter = true; this.lab.ui.toast('Seat recentered'); } }
 
   // ------------------------------------------------------------------ simulation
   readInput(dt) {

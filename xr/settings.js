@@ -9,6 +9,7 @@ const DEFAULTS = {
   volume: 0.7, ambience: true, engine: true,
   snapAngle: 30, turnMode: 'snap', locomotion: 'both', seatedOffset: 0,
   invertPitch: false, reduceMotion: false, showHints: true,
+  panelMode: 'hand', teleportFade: true,
 };
 
 export const QUALITY = {

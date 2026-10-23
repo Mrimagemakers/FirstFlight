@@ -157,6 +157,9 @@ export class Shell {
         <label>Turning<select id="set-turnMode">${opt('turnMode', [['snap', 'Snap turn'], ['smooth', 'Smooth turn']])}</select></label>
         <label>Snap angle<select id="set-snapAngle">${opt('snapAngle', [[22.5, '22.5°'], [30, '30°'], [45, '45°'], [90, '90°']])}</select></label>
         <label>Moving<select id="set-locomotion">${opt('locomotion', [['both', 'Teleport + walk'], ['teleport', 'Teleport only']])}</select></label>
+        <label>Menu panel in VR<select id="set-panelMode">${opt('panelMode', [['hand', 'On left hand'], ['float', 'Floating']])}</select></label>
+        <label>Height adjustment<select id="set-seatedOffset">${opt('seatedOffset', [[-0.2, '−20 cm'], [-0.1, '−10 cm'], [0, 'Standing (none)'], [0.2, '+20 cm'], [0.3, '+30 cm'], [0.4, '+40 cm (seated)'], [0.5, '+50 cm'], [0.6, '+60 cm']])}</select></label>
+        <label class="chk"><input type="checkbox" id="set-teleportFade" ${s.teleportFade ? 'checked' : ''}> Fade when teleporting</label>
       </fieldset>
       <fieldset><legend>Controls &amp; help</legend>
         <label class="chk"><input type="checkbox" id="set-invertPitch" ${s.invertPitch ? 'checked' : ''}> Invert pitch when flying</label>
@@ -168,7 +171,7 @@ export class Shell {
     body.querySelectorAll('select, input').forEach(i => i.addEventListener('change', () => {
       const k = i.id.replace('set-', '');
       let v = i.type === 'checkbox' ? i.checked : i.type === 'range' ? +i.value : i.value;
-      if (k === 'snapAngle') v = +v;
+      if (k === 'snapAngle' || k === 'seatedOffset') v = +v;
       setSetting(k, v);
       if (k === 'quality') this.lab.ui.toast('Quality: ' + QUALITY[v].label + '. Some changes apply when a station reloads.');
     }));
@@ -189,7 +192,7 @@ export class Shell {
     this.modal('How to play', `<div class="help">
       <section><h3>Mouse &amp; keyboard</h3><ul><li><b>Drag</b> to look or orbit; <b>scroll</b> to zoom.</li><li><b>W A S D</b> or <b>arrow keys</b> walk on the ramp and in the cabin. Click the ground to walk there.</li><li><b>Click</b> glowing markers, FOD and litter.</li><li>Flying: <b>arrow keys</b> pitch and bank, <b>+ / −</b> power, <b>Space</b> start/pause, <b>C</b> outside view.</li><li><b>Esc</b> opens this menu.</li></ul></section>
       <section><h3>Touch</h3><ul><li>Drag to look, pinch to zoom, tap to select or walk.</li><li>Use the on-screen pad and power lever to fly.</li></ul></section>
-      <section><h3>VR headset</h3><ul><li><b>Trigger</b>: select markers, panel buttons and objects.</li><li><b>Right stick</b>: push forward to aim a teleport, release to jump; left/right to turn.</li><li><b>Left stick</b>: walk.</li><li><b>Grip</b>: bring the lesson panel in front of you.</li><li>Flying: left stick flies, right stick sets power, trigger starts or pauses.</li></ul></section>
+      <section><h3>VR headset</h3><ul><li><b>Menu panel</b>: it rides on your left controller like a tablet. Point with the right controller and pull the <b>trigger</b> to press its buttons. Tabs: Lesson, Stations, Comfort, Exit VR.</li><li><b>X</b>: show or hide the menu. <b>Y</b>: jump straight to Stations.</li><li><b>Right stick</b>: push forward to aim a teleport, release to jump; push left or right to turn.</li><li><b>Left stick</b>: walk; click the stick to move faster.</li><li><b>Flying</b>: left stick flies, right stick sets power, <b>A</b> starts or stops the engine, <b>B</b> recenters your seat.</li><li>Prefer a floating menu, smooth turning, teleport-only or a seated height? Change it on the panel’s <b>Comfort</b> tab.</li></ul></section>
       <section><h3>Gamepad</h3><ul><li>Left stick flies; triggers set power; A starts or pauses.</li></ul></section>
     </div>`, { back, wide: true });
   }
