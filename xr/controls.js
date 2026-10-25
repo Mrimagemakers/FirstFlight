@@ -2,6 +2,7 @@
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { XRControllerModelFactory } from 'three/addons/webxr/XRControllerModelFactory.js';
+import { XRHandModelFactory } from 'three/addons/webxr/XRHandModelFactory.js';
 import { settings, onSettings } from './settings.js';
 
 const tmpV = new THREE.Vector3();
@@ -218,6 +219,10 @@ export class XRControls {
     this.floorY = 0;
     const factory = new XRControllerModelFactory();
     factory.path = new URL('../vendor/xr-profiles', import.meta.url).href;
+    // Hand tracking: realistic hand meshes that follow your fingers (pinch to select)
+    const handFactory = new XRHandModelFactory();
+    handFactory.setPath(factory.path.replace(/\/?$/, '/') + 'generic-hand/');
+    this.hands = [0, 1].map(i => { const h = r.xr.getHand(i); h.add(handFactory.createHandModel(h, 'mesh')); lab.rig.add(h); return h; });
 
     for (let i = 0; i < 2; i++) {
       const c = r.xr.getController(i);

@@ -49,7 +49,9 @@ export class Post {
     this.flags = { ao: true, bloom: true, smaa: true };
   }
 
-  configure({ enabled, ao, bloom, smaa, aoRadius, bloomStrength, warmth, vignette }) {
+  configure({ enabled, ao, bloom, smaa, msaa, aoSamples, aoRadius, bloomStrength, warmth, vignette }) {
+    if (msaa !== undefined) this.setSamples(msaa);
+    if (aoSamples !== undefined && aoSamples !== this.aoSamples) { this.aoSamples = aoSamples; this.gtao.updateGtaoMaterial({ samples: aoSamples }); this.gtao.updatePdMaterial({ samples: Math.max(8, aoSamples) }); }
     if (enabled !== undefined) this.enabled = enabled;
     if (ao !== undefined) this.gtao.enabled = ao;
     if (bloom !== undefined) this.bloom.enabled = bloom;
@@ -58,6 +60,11 @@ export class Post {
     if (bloomStrength !== undefined) this.bloom.strength = bloomStrength;
     if (warmth !== undefined) this.grade.uniforms.warmth.value = warmth;
     if (vignette !== undefined) this.grade.uniforms.vignette.value = vignette;
+  }
+
+  /** Multisampled (MSAA) post buffers for clean geometry edges on Ultra. */
+  setSamples(n) {
+    for (const rt of [this.composer.renderTarget1, this.composer.renderTarget2]) if (rt.samples !== n) { rt.samples = n; rt.dispose(); }
   }
 
   setSize(w, h) {

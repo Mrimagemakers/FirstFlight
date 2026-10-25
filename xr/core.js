@@ -113,7 +113,7 @@ export class Lab {
   }
 
   // ------------------------------------------------------------------ assets
-  tex(name, { repeat = [1, 1], srgb = false, anisotropy = 8 } = {}) {
+  tex(name, { repeat = [1, 1], srgb = false, anisotropy = quality().anisotropy } = {}) {
     const key = name + repeat.join('x') + srgb;
     if (this.texCache.has(key)) return this.texCache.get(key);
     const t = this.texLoader.load(ASSET + 'tex/' + name, () => this.onAssetLoaded?.());
@@ -277,7 +277,11 @@ export class Lab {
     const session = await navigator.xr.requestSession(mode, { optionalFeatures: ['local-floor', 'bounded-floor', 'hand-tracking'] });
     this.xrMode = mode;
     this.renderer.xr.setReferenceSpaceType('local-floor');
+    // Headset detail: render above native resolution and keep the edges sharp on higher settings.
+    const q = quality();
+    try { this.renderer.xr.setFramebufferScaleFactor(q.xrScale || 1); } catch { /* not supported */ }
     await this.renderer.xr.setSession(session);
+    try { this.renderer.xr.setFoveation(q.xrFoveation ?? 0.5); } catch { /* not supported */ }
     this.controls.enabled = false;
     if (mode === 'immersive-ar') {
       this.arBackup = { background: this.scene.background, sky: this.sky.visible, fog: this.scene.fog };
@@ -341,12 +345,13 @@ export class Lab {
     if (this.sun.shadow.mapSize.x !== q.shadow) { this.sun.shadow.mapSize.setScalar(q.shadow); this.sun.shadow.map?.dispose(); this.sun.shadow.map = null; }
     this.resize();
     this.updatePost();
+    this.station?.impl?.applyQuality?.(q);
   }
 
   /** Station-specific post settings merged with the player's graphics settings. */
   updatePost() {
     const q = quality(), st = this.station?.post || {};
-    this.post.configure({ enabled: q.post, ao: q.ao && settings.ao && st.ao !== false, bloom: settings.bloom && st.bloom !== false, smaa: q.smaa, aoRadius: st.aoRadius ?? 0.6, bloomStrength: st.bloomStrength ?? 0.22, warmth: st.warmth ?? 0, vignette: st.vignette ?? 0.28 });
+    this.post.configure({ enabled: q.post, ao: q.ao && settings.ao && st.ao !== false, bloom: settings.bloom && st.bloom !== false, smaa: q.smaa, msaa: q.msaa, aoSamples: q.aoSamples, aoRadius: st.aoRadius ?? 0.6, bloomStrength: st.bloomStrength ?? 0.22, warmth: st.warmth ?? 0, vignette: st.vignette ?? 0.28 });
   }
 
   frame() {

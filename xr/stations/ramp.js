@@ -39,6 +39,7 @@ export class RampStation {
     const uv = apronGeo.attributes.uv; for (let i = 0; i < uv.count; i++) uv.setXY(i, uv.getX(i) * 420 / 7.5, uv.getY(i) * 260 / 7.5);
     this.apron = mesh(apronGeo, M.concrete, root, { cast: false });
     this.apron.position.set(0, 0, 60);
+    if (quality === 'high') this.apronGrime(root);
     const roadGeo = new THREE.PlaneGeometry(420, 6).rotateX(-Math.PI / 2);
     const ruv = roadGeo.attributes.uv; for (let i = 0; i < ruv.count; i++) ruv.setXY(i, ruv.getX(i) * 420 / 6, ruv.getY(i));
     mesh(roadGeo, M.asphalt, root, { cast: false }).position.set(0, 0.004, -27.6);
@@ -258,6 +259,34 @@ export class RampStation {
       progress: { value: found + scen, max: this.fod.length + SCENARIOS.length, label: `${found + scen} of ${this.fod.length + SCENARIOS.length} ramp tasks complete` },
       foot: 'Hazard areas shown are illustrative only. Your airline and airport define the actual zones, distances and procedures.',
     });
+  }
+
+  /** High/Ultra: weathering on the stand: tyre marks on the lead-in line, oil and hydraulic stains, slab joints. */
+  apronGrime(root) {
+    const S = 2048, M = 64; // canvas pixels across M metres
+    const { texture: tex } = canvasTexture(S, S, (c) => {
+      c.clearRect(0, 0, S, S);
+      const r = rand(7);
+      const px = m => (m / M + 0.5) * S; // metres -> pixels
+      // slab joints every 7.5 m
+      c.strokeStyle = 'rgba(40,38,34,0.35)'; c.lineWidth = 3;
+      for (let m = -30; m <= 30; m += 7.5) { c.beginPath(); c.moveTo(px(m), 0); c.lineTo(px(m), S); c.stroke(); c.beginPath(); c.moveTo(0, px(m)); c.lineTo(S, px(m)); c.stroke(); }
+      // nose-gear and main-gear tyre tracks along the lead-in line
+      for (const [x, w, a] of [[0, 0.5, 0.18], [-3.6, 0.9, 0.16], [3.6, 0.9, 0.16]]) {
+        const g = c.createLinearGradient(px(x - w), 0, px(x + w), 0);
+        g.addColorStop(0, 'rgba(20,20,20,0)'); g.addColorStop(0.5, `rgba(18,18,18,${a})`); g.addColorStop(1, 'rgba(20,20,20,0)');
+        c.fillStyle = g; c.fillRect(px(x - w), 0, px(x + w) - px(x - w), S);
+      }
+      // oil / hydraulic stains: under engines, gear, APU and where GSE parks
+      const blot = (x, z, rad, a) => { for (let k = 0; k < 9; k++) { const ox = (r() - 0.5) * rad, oz = (r() - 0.5) * rad, rr = rad * (0.3 + r() * 0.6); const g = c.createRadialGradient(px(x + ox), px(z + oz), 0, px(x + ox), px(z + oz), rr / M * S); g.addColorStop(0, `rgba(14,12,10,${a})`); g.addColorStop(1, 'rgba(14,12,10,0)'); c.fillStyle = g; c.beginPath(); c.arc(px(x + ox), px(z + oz), rr / M * S, 0, 7); c.fill(); } };
+      for (const [x, z] of [[5.7, -3], [-5.7, -3], [3.6, 1.5], [-3.6, 1.5], [0, -14], [0, 17.5], [8, -11], [10, 4], [-9, 6]]) blot(x, z, 1.8 + r() * 1.4, 0.16 + r() * 0.1);
+      // random weathering patches
+      for (let i = 0; i < 160; i++) { const x = (r() - 0.5) * M, z = (r() - 0.5) * M, rr = 0.6 + r() * 2.4; const g = c.createRadialGradient(px(x), px(z), 0, px(x), px(z), rr / M * S); const dark = r() < 0.7; g.addColorStop(0, dark ? `rgba(30,28,24,${0.05 + r() * 0.06})` : `rgba(240,236,226,${0.04 + r() * 0.05})`); g.addColorStop(1, 'rgba(0,0,0,0)'); c.fillStyle = g; c.fillRect(px(x) - rr / M * S, px(z) - rr / M * S, rr / M * S * 2, rr / M * S * 2); }
+    }, { anisotropy: 16 });
+    const mat = new THREE.MeshStandardMaterial({ map: tex, transparent: true, depthWrite: false, roughness: 0.9, polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -2 });
+    const m = new THREE.Mesh(new THREE.PlaneGeometry(M, M).rotateX(-Math.PI / 2), mat);
+    m.position.set(0, 0.006, 0); m.receiveShadow = true; m.renderOrder = 1;
+    root.add(m);
   }
 
   xrSpawn() { return { position: new THREE.Vector3(14.5, 0, -2), yaw: 0.9 }; }

@@ -4,6 +4,8 @@ import { mesh, box, cyl, rod, sphere, canvasTexture, noise2, rand, roundedBox, l
 import { materials } from '../materials.js';
 import { buildTrainer, TRAINER_GROUND } from '../models/trainer.js';
 import { quality } from '../settings.js';
+import { Water } from 'three/addons/objects/Water.js';
+import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 
 const FT = 0.3048;
 const $ = id => document.getElementById(id);
@@ -105,9 +107,24 @@ float fHash(vec2 p){ return fract(sin(dot(p, vec2(41.3, 289.1))) * 43758.5453); 
   grassC *= mix(vec3(1.0), field, valleyFloor * fieldAmount);
   float lum = dot(grassC, vec3(0.3, 0.55, 0.15));
   grassC = mix(grassC, sandTint * (0.55 + lum * 1.2), dryness);
+#ifdef TERRAIN_HQ
+  // tri-planar rock: no stretching on cliffs; two scales plus sedimentary banding
+  vec3 an = pow(abs(vWNor), vec3(4.0)); an /= (an.x + an.y + an.z);
+  vec3 rA = texture2D(tRock, vWPos.zy / 70.0).rgb * an.x + texture2D(tRock, wp / 70.0).rgb * an.y + texture2D(tRock, vWPos.xy / 70.0).rgb * an.z;
+  vec3 rB = texture2D(tRock, vWPos.zy / 19.0).rgb * an.x + texture2D(tRock, wp / 19.0).rgb * an.y + texture2D(tRock, vWPos.xy / 19.0).rgb * an.z;
+  vec3 rockC = mix(rA, rB, 0.38) * rockTint;
+  float strata = sin(vWPos.y * 0.11 + texture2D(tRock, wp / 380.0).r * 7.0);
+  rockC *= 0.9 + 0.16 * strata * smoothstep(0.25, 0.6, slope);
+  // large-scale colour variation so meadows and forests don't look uniform
+  float macro = texture2D(tGrass, wp / 3100.0).g;
+  grassC *= 0.82 + 0.36 * macro;
+  grassC = mix(vec3(dot(grassC, vec3(0.3, 0.59, 0.11))), grassC, 0.8);
+  rockC *= 0.88 + 0.24 * texture2D(tRock, wp / 2700.0).b;
+#else
   vec3 r1 = texture2D(tRock, wp / 70.0).rgb;
   vec3 r2 = texture2D(tRock, vec2(wp.x + wp.y, vWPos.y * 1.6) / 60.0).rgb;
   vec3 rockC = mix(r1, r2, 0.5) * rockTint;
+#endif
   float rockMix = smoothstep(0.07, 0.2, slope);
   vec3 col = mix(grassC, rockC, rockMix);
   float sNoise = texture2D(tRock, wp / 900.0).r * 0.6 + texture2D(tRock, wp / 140.0).g * 0.4;
@@ -119,6 +136,8 @@ float fHash(vec2 p){ return fract(sin(dot(p, vec2(41.3, 289.1))) * 43758.5453); 
   diffuseColor.rgb *= col;
 `);
     };
+    this.terrainMat = tmat;
+    if (quality().terrainHQ) tmat.defines = { TERRAIN_HQ: '' };
     this.terrain = mesh(geo, tmat, root, { cast: false, receive: true });
     this.terrain.name = 'terrain';
 
@@ -128,21 +147,17 @@ float fHash(vec2 p){ return fract(sin(dot(p, vec2(41.3, 289.1))) * 43758.5453); 
     this.water = mesh(new THREE.PlaneGeometry(SIZE * 1.6, SIZE * 1.6).rotateX(-Math.PI / 2), this.waterMat, root, { cast: false });
     this.water.position.set(0, -18, -7000);
     this.waterNormal = wn;
+    // Ultra: real-time reflections of terrain, sky and the airplane (screens only; headsets use the standard water)
+    this.waterR = null;
+    if (quality().water === 'reflect') this.makeReflectiveWater(SIZE);
 
     // -------------------------------------------------------------- vegetation & villages (instanced)
-    const conGeo = lathe([[0, 0], [0.12, 0], [0.12, 0.18], [0.75, 0.2], [0.42, 0.48], [0.62, 0.5], [0.3, 0.75], [0.42, 0.77], [0, 1.02]], 7);
-    const conCol = new Float32Array(conGeo.attributes.position.count * 3);
-    for (let i = 0; i < conGeo.attributes.position.count; i++) { const y = conGeo.attributes.position.getY(i); const trunk = y < 0.19; conCol.set(trunk ? [0.32, 0.22, 0.14] : [0.18 + y * 0.08, 0.3 + y * 0.08, 0.2], i * 3); }
-    conGeo.setAttribute('color', new THREE.BufferAttribute(conCol, 3));
-    const decGeo = new THREE.IcosahedronGeometry(0.55, 1); decGeo.scale(1, 0.85, 1); decGeo.translate(0, 0.7, 0);
-    const decCol = new Float32Array(decGeo.attributes.position.count * 3).fill(0.3);
-    for (let i = 0; i < decGeo.attributes.position.count; i++) decCol.set([0.25, 0.38, 0.18], i * 3);
-    decGeo.setAttribute('color', new THREE.BufferAttribute(decCol, 3));
-    const treeMat = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.95, flatShading: true });
+    const { conGeo, decGeo } = this.treeGeometry(quality().trees > 1.2);
+    const treeMat = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.95, flatShading: !(quality().trees > 1.2) });
     const nTrees = Math.round(8000 * quality().trees);
     this.conifers = new THREE.InstancedMesh(conGeo, treeMat, nTrees);
     this.broadleaf = new THREE.InstancedMesh(decGeo, treeMat, Math.round(nTrees * 0.6));
-    this.conifers.castShadow = this.broadleaf.castShadow = false;
+    this.conifers.castShadow = this.broadleaf.castShadow = !!quality().treeShadows;
     root.add(this.conifers, this.broadleaf);
     const houseGeo = new THREE.BoxGeometry(1, 1, 1); houseGeo.translate(0, 0.5, 0);
     const roofGeo = new THREE.CylinderGeometry(0, 0.78, 0.6, 4, 1); roofGeo.rotateY(Math.PI / 4); roofGeo.scale(1, 1, 1.4); roofGeo.translate(0, 1.3, 0);
@@ -196,7 +211,7 @@ float fHash(vec2 p){ return fract(sin(dot(p, vec2(41.3, 289.1))) * 43758.5453); 
     this.cloudMats = cloudMats;
     this.clouds = new THREE.Group(); root.add(this.clouds);
     const cr = rand(77);
-    for (let c = 0; c < 70; c++) {
+    for (let c = 0; c < Math.round(70 * (quality().clouds || 1)); c++) {
       const cx = (cr() - 0.5) * 28000, cz = -7000 + (cr() - 0.5) * 32000;
       const big = 0.6 + cr() * 0.9;
       const n = 4 + Math.floor(cr() * 6);
@@ -486,6 +501,7 @@ float fHash(vec2 p){ return fract(sin(dot(p, vec2(41.3, 289.1))) * 43758.5453); 
     this.water.visible = c.water > -9000;
     this.water.position.y = c.water;
     this.waterMat.color.set(c.waterColor);
+    if (this.waterR) { this.waterR.position.y = c.water; this.waterR.material.uniforms.waterColor.value.set(c.waterColor).multiplyScalar(1.05); }
     // trees
     const r = rand(1234), d = new THREE.Object3D();
     const place = (inst, count, broad) => {
@@ -500,13 +516,14 @@ float fHash(vec2 p){ return fract(sin(dot(p, vec2(41.3, 289.1))) * 43758.5453); 
         if (sl > 22) continue;
         if (r() > c.trees * (broad ? 0.6 : 1)) continue;
         // clump: place several trees around this point
-        for (let k = 0; k < 6 && n < count; k++) {
-          const tx = x + (r() - 0.5) * 140, tz = z + (r() - 0.5) * 140, th = this.height(tx, tz, key);
+        const clump = quality().trees > 1.2 ? 11 : 6, spread = quality().trees > 1.2 ? 190 : 140;
+        for (let k = 0; k < clump && n < count; k++) {
+          const tx = x + (r() - 0.5) * spread, tz = z + (r() - 0.5) * spread, th = this.height(tx, tz, key);
           if (th < c.water + 3) continue;
           const s = (broad ? 9 : 11) + r() * 10;
           d.position.set(tx, th - 0.5, tz); d.rotation.set(0, r() * 6.28, 0); d.scale.set(s * (0.8 + r() * 0.3), s * (broad ? 1 : 1.6 + r() * 0.6), s * (0.8 + r() * 0.3));
           d.updateMatrix(); inst.setMatrixAt(n, d.matrix);
-          inst.setColorAt(n, new THREE.Color().setHSL(0.27 + r() * 0.08, 0.25 + r() * 0.2, 0.38 + r() * 0.2));
+          inst.setColorAt(n, new THREE.Color().setHSL(0.24 + r() * 0.1, 0.3 + r() * 0.18, (broad ? 0.36 : 0.3) + r() * 0.16));
           n++;
         }
       }
@@ -646,6 +663,65 @@ float fHash(vec2 p){ return fract(sin(dot(p, vec2(41.3, 289.1))) * 43758.5453); 
       progress: { value: done.filter(i => i < 4).length, max: 4, label: `${done.filter(i => i < 4).length} of 4 flight missions earned` },
       foot: 'Educational exploration only. No flight-training credit. Learn real procedures with a qualified instructor and your aircraft’s approved handbook.',
     });
+  }
+
+  /** Planar-reflection water (three.js Water) used on Ultra. */
+  makeReflectiveWater(SIZE) {
+    const normals = this.waterNormal.clone(); normals.repeat.set(1, 1); normals.wrapS = normals.wrapT = THREE.RepeatWrapping; normals.needsUpdate = true;
+    const w = new Water(new THREE.PlaneGeometry(SIZE * 1.6, SIZE * 1.6), {
+      textureWidth: 1024, textureHeight: 1024, waterNormals: normals,
+      sunDirection: new THREE.Vector3(0.3, 0.6, -0.4), sunColor: 0xfff1df, waterColor: 0x0f3440,
+      distortionScale: 2.6, alpha: 1.0, fog: true, size: 0.35,
+    });
+    // keep the lake colour: tint and soften the mirrored sky so water doesn't read as white at grazing angles
+    w.material.fragmentShader = w.material.fragmentShader
+      .replace('( vec3( 0.1 ) + reflectionSample * 0.9 + reflectionSample * specularLight )', '( waterColor * 1.15 + reflectionSample * waterColor * 2.2 * vec3( 0.75, 0.95, 1.15 ) + reflectionSample * specularLight )')
+      .replace(/float reflectance = ([^;]+);/, 'float reflectance = ( $1 ) * 0.6;');
+    w.rotation.x = -Math.PI / 2;
+    w.position.set(0, -18, -7000);
+    w.receiveShadow = false;
+    w.visible = false;
+    this.root.add(w);
+    this.waterR = w;
+  }
+
+  /** Quality changed in the settings while flying. */
+  applyQuality(q) {
+    if (!this.terrainMat) return;
+    const want = !!q.terrainHQ, has = 'TERRAIN_HQ' in (this.terrainMat.defines || {});
+    if (want !== has) { this.terrainMat.defines = want ? { TERRAIN_HQ: '' } : {}; this.terrainMat.needsUpdate = true; }
+    this.conifers.castShadow = this.broadleaf.castShadow = !!q.treeShadows;
+    if (q.water === 'reflect' && !this.waterR) this.makeReflectiveWater(40000);
+  }
+
+  /** Conifers with layered boughs and broadleaf trees with a trunk and lumpy crown; vertex colours fake ambient occlusion. */
+  treeGeometry(detailed) {
+    const seg = detailed ? 11 : 8;
+    const tint = (g, fn) => { const p = g.attributes.position, col = new Float32Array(p.count * 3); for (let i = 0; i < p.count; i++) col.set(fn(p.getX(i), p.getY(i), p.getZ(i)), i * 3); g.setAttribute('color', new THREE.BufferAttribute(col, 3)); return g; };
+    // conifer: trunk + 4 drooping tiers
+    const parts = [tint(new THREE.CylinderGeometry(0.035, 0.06, 0.3, 6).translate(0, 0.15, 0), () => [0.3, 0.2, 0.13])];
+    const tiers = detailed ? 5 : 4;
+    for (let k = 0; k < tiers; k++) {
+      const f = k / (tiers - 1), r = 0.72 - f * 0.48, y0 = 0.16 + f * 0.62, h = 0.42 - f * 0.12;
+      const g = new THREE.ConeGeometry(r, h, seg, 2, true).translate(0, y0 + h / 2, 0);
+      const p = g.attributes.position;
+      for (let i = 0; i < p.count; i++) { const y = p.getY(i); if (y < y0 + 0.02) p.setY(i, y - 0.05 * Math.sin(i * 1.7) ** 2); const j = 1 + 0.08 * Math.sin(i * 12.9898); p.setX(i, p.getX(i) * j); p.setZ(i, p.getZ(i) * j); }
+      g.computeVertexNormals();
+      parts.push(tint(g, (x, y) => { const t = (y - y0) / h; const ao = 0.62 + t * 0.38 + f * 0.1; return [0.12 * ao, 0.27 * ao, 0.16 * ao]; }));
+    }
+    const conGeo = mergeGeometries(parts.map(g => g.toNonIndexed()));
+    // broadleaf: trunk + 3 overlapping lumpy blobs
+    const bparts = [tint(new THREE.CylinderGeometry(0.04, 0.07, 0.45, 6).translate(0, 0.22, 0), () => [0.32, 0.23, 0.15])];
+    const blobs = detailed ? [[0, 0.78, 0, 0.42], [0.2, 0.62, 0.1, 0.32], [-0.18, 0.66, -0.12, 0.33], [0.05, 0.95, 0.08, 0.28]] : [[0, 0.75, 0, 0.45], [0.18, 0.62, 0.08, 0.33], [-0.16, 0.64, -0.1, 0.34]];
+    blobs.forEach(([bx, by, bz, br], bi) => {
+      const g = new THREE.IcosahedronGeometry(br, detailed ? 2 : 1);
+      const p = g.attributes.position;
+      for (let i = 0; i < p.count; i++) { const v = new THREE.Vector3(p.getX(i), p.getY(i), p.getZ(i)); const n = 1 + 0.16 * Math.sin(v.x * 23 + bi) * Math.cos(v.y * 19 - v.z * 17); v.multiplyScalar(n); p.setXYZ(i, v.x, v.y * 0.85, v.z); }
+      g.translate(bx, by, bz); g.computeVertexNormals();
+      bparts.push(tint(g, (x, y) => { const ao = 0.55 + Math.min(1, (y - 0.35) / 0.7) * 0.45; return [0.2 * ao, 0.34 * ao, 0.14 * ao]; }));
+    });
+    const decGeo = mergeGeometries(bparts.map(g => g.toNonIndexed()));
+    return { conGeo, decGeo };
   }
 
   xrSpawn() { return { position: this.plane.position.clone(), yaw: 0 }; }
@@ -816,6 +892,12 @@ float fHash(vec2 p){ return fract(sin(dot(p, vec2(41.3, 289.1))) * 43758.5453); 
     }
     // water + windsock + clouds
     this.waterNormal.offset.set(t * 0.004, t * 0.0025);
+    if (this.waterR) {
+      const show = REGIONS[this.region].water > -9000, reflect = quality().water === 'reflect' && !lab.renderer.xr.isPresenting;
+      this.waterR.visible = show && reflect; this.water.visible = show && !reflect;
+      const u = this.waterR.material.uniforms;
+      u.time.value = t * 0.6; u.sunDirection.value.copy(lab.sunDir); u.sunColor.value.copy(lab.sun.color);
+    }
     this.sock.rotation.y = Math.sin(t * 0.6) * 0.15;
     // audio pitch follows power
     if (this.audio && this.sound) { this.audio.osc.frequency.setTargetAtTime(55 + s.throttle * 55, this.audio.ctx.currentTime, 0.1); this.audio.osc2.frequency.setTargetAtTime(27 + s.throttle * 28, this.audio.ctx.currentTime, 0.1); }

@@ -57,6 +57,16 @@ export function buildAirliner(lab, { quality = 'high', accent = '#0f3d5c', accen
         pts.push(side === 'right' ? [0, 0] : [W, 0]); pts.unshift(side === 'right' ? [0, H] : [W, H]);
         poly(pts, '#c9cfd3');
       }
+      // skin panel seams and rivet rows (high quality and up)
+      if (quality === 'high') {
+        ctx.save();
+        ctx.strokeStyle = 'rgba(120,128,132,0.28)'; ctx.lineWidth = 1.5;
+        for (let z = -15.5; z < 19.5; z += 1.55) { ctx.beginPath(); for (let u = 0; u <= 1.001; u += 0.02) { const pt = [u * W, (1 - (z - Z0) / LEN) * H]; u ? ctx.lineTo(...pt) : ctx.moveTo(...pt); } ctx.stroke(); }
+        for (const u of [0.18, 0.33, 0.5, 0.67, 0.82]) { ctx.beginPath(); ctx.moveTo(u * W, (1 - (-15.5 - Z0) / LEN) * H); ctx.lineTo(u * W, (1 - (19.5 - Z0) / LEN) * H); ctx.stroke(); }
+        ctx.fillStyle = 'rgba(110,118,122,0.22)';
+        for (let z = -15.5; z < 19.5; z += 1.55) for (let u = 0.02; u < 1; u += 0.006) { const [px, py] = [u * W, (1 - (z - Z0) / LEN) * H]; ctx.fillRect(px - 0.8, py + 3, 1.6, 1.6); }
+        ctx.restore();
+      }
       // cheatline sweeping up towards the tail
       for (const side of ['right', 'left']) {
         const top = [], bottom = [];
@@ -85,32 +95,45 @@ export function buildAirliner(lab, { quality = 'high', accent = '#0f3d5c', accen
         poly(pts, '#121b22');
         ctx.strokeStyle = '#d9dddd'; ctx.lineWidth = 4; ctx.beginPath(); ctx.moveTo(0.5 * W, (1 - (zA - Z0) / LEN) * H); ctx.lineTo(0.5 * W, (1 - (zB - Z0) / LEN) * H); ctx.stroke();
       }
+      // rounded window: superellipse in (z, y) metres, with a dark reveal and a sky reflection
+      const win = (z, y, w, h, side) => {
+        const outline = (sc) => { const pts = []; for (let i = 0; i < 28; i++) { const a = i / 28 * Math.PI * 2, c = Math.cos(a), s = Math.sin(a); pts.push(P(z + Math.sign(c) * Math.abs(c) ** 0.55 * w / 2 * sc, y + Math.sign(s) * Math.abs(s) ** 0.55 * h / 2 * sc, side)); } return pts; };
+        poly(outline(1.18), '#b9c0c4');
+        poly(outline(1.0), '#18232a');
+        ctx.save(); ctx.beginPath(); outline(1.0).forEach((p, i) => (i ? ctx.lineTo(...p) : ctx.moveTo(...p))); ctx.closePath(); ctx.clip();
+        const a = P(z, y + h / 2, side), b = P(z, y - h / 2, side);
+        const g = ctx.createLinearGradient(a[0], a[1], b[0], b[1]); g.addColorStop(0, 'rgba(140,170,190,0.55)'); g.addColorStop(0.45, 'rgba(40,60,75,0.2)'); g.addColorStop(1, 'rgba(0,0,0,0)');
+        ctx.fillStyle = g; ctx.fillRect(Math.min(a[0], b[0]) - 40, Math.min(a[1], b[1]) - 40, Math.abs(b[0] - a[0]) + 80, Math.abs(b[1] - a[1]) + 80);
+        ctx.restore();
+      };
       // passenger windows
       for (const side of ['right', 'left']) {
         for (let z = -11.9; z < 11.6; z += 0.53) {
           if (Math.abs(z - -0.6) < 0.4 || Math.abs(z - 0.35) < 0.3) continue; // overwing exits drawn separately
-          rrect(z, z + 0.24, 4.15, 4.5, side, '#1a252c', '#8d969b', 2);
+          win(z + 0.12, 4.325, 0.24, 0.35, side);
         }
         // doors: forward, aft and overwing exits
         for (const [z0, z1] of [[-14.3, -13.45], [13.5, 14.35]]) {
           rrect(z0, z1, 2.98, 4.85, side, null, '#7c8489', 4);
-          rrect(z0 + 0.3, z0 + 0.55, 4.18, 4.5, side, '#1a252c', '#8d969b', 2);
+          win(z0 + 0.425, 4.34, 0.22, 0.3, side);
           ctx.fillStyle = '#5f676c';
           const h = P(z1 - 0.12, 3.9, side); ctx.fillRect(h[0] - 6, h[1] - 14, 12, 28);
         }
-        for (const z of [-0.95, 0.05]) { rrect(z, z + 0.52, 3.35, 4.62, side, null, '#7c8489', 2.5); rrect(z + 0.14, z + 0.38, 4.15, 4.5, side, '#1a252c', '#8d969b', 2); }
+        for (const z of [-0.95, 0.05]) { rrect(z, z + 0.52, 3.35, 4.62, side, null, '#7c8489', 2.5); win(z + 0.26, 4.325, 0.24, 0.35, side); }
         // titles
-        api.side(side, side === 'right' ? 0.262 : 0.738, (-6.5 - Z0) / LEN, c => {
-          c.fillStyle = accent; c.font = '800 0.62px system-ui, sans-serif'; c.textAlign = 'center';
-          c.fillText(name, 0, -0.05);
+        api.side(side, uvAt(-6.5, 5.02, side)[0], (-6.5 - Z0) / LEN, c => {
+          c.scale(0.01, 0.01);
+          c.fillStyle = accent; c.font = '800 62px system-ui, sans-serif'; c.textAlign = 'center';
+          if (c.letterSpacing !== undefined) c.letterSpacing = '2px';
+          c.fillText(name, 0, -5);
         });
       }
       // cargo doors on the right (forward + aft)
       rrect(-11.2, -9.4, 2.25, 3.5, 'right', cargoOpen ? '#0b0f12' : null, '#80888d', 3);
       rrect(7.2, 9.0, 2.25, 3.5, 'right', null, '#80888d', 3);
       // registration-free fleet number near the tail
-      api.side('right', 0.27, (15.6 - Z0) / LEN, c => { c.fillStyle = '#3b4449'; c.font = '600 0.28px system-ui'; c.textAlign = 'center'; c.fillText('TRAINING FLEET 07', 0, 0); });
-      api.side('left', 0.73, (15.6 - Z0) / LEN, c => { c.fillStyle = '#3b4449'; c.font = '600 0.28px system-ui'; c.textAlign = 'center'; c.fillText('TRAINING FLEET 07', 0, 0); });
+      api.side('right', 0.27, (15.6 - Z0) / LEN, c => { c.scale(0.01, 0.01); c.fillStyle = '#3b4449'; c.font = '600 28px system-ui'; c.textAlign = 'center'; c.fillText('TRAINING FLEET 07', 0, 0); });
+      api.side('left', 0.73, (15.6 - Z0) / LEN, c => { c.scale(0.01, 0.01); c.fillStyle = '#3b4449'; c.font = '600 28px system-ui'; c.textAlign = 'center'; c.fillText('TRAINING FLEET 07', 0, 0); });
     },
   });
   const skin = M.paintPlain.clone();

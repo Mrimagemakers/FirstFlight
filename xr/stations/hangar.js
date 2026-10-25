@@ -4,6 +4,8 @@ import * as THREE from 'three';
 import { mesh, box, cyl, rod, tube, sphere, canvasTexture, contactShadow, roundedBox, rand } from '../util.js';
 import { materials } from '../materials.js';
 import { buildTrainer } from '../models/trainer.js';
+import { quality } from '../settings.js';
+import { addPlanarReflection } from '../reflect.js';
 
 const COMPONENTS = {
   airframe: { label: 'Airframe & flight controls', tag: 'Airframe & controls', title: 'Follow the control paths', text: 'Watch the ailerons, elevator and rudder move. Ailerons move differentially to roll the airplane, the elevator changes pitch and the rudder influences yaw. Cables (gold and steel) show the idea of a mechanical link from the cabin; real rigging, tension and travel limits come from approved maintenance data.', focus: [0, 1.6, 1.2], cam: [7.5, 4.2, 8.5] },
@@ -38,6 +40,8 @@ export class HangarStation {
     const floorGeo = new THREE.PlaneGeometry(W, D).rotateX(-Math.PI / 2);
     this.floor = mesh(floorGeo, M.epoxy, root, { cast: false });
     this.floor.position.z = 0;
+    this.floorSize = [W, D];
+    if (quality().reflections) this.refl = addPlanarReflection(lab, this.floor, { width: W, depth: D, strength: 0.34 });
     const apron = new THREE.PlaneGeometry(260, 220).rotateX(-Math.PI / 2);
     const uv = apron.attributes.uv; for (let i = 0; i < uv.count; i++) uv.setXY(i, uv.getX(i) * 260 / 7.5, uv.getY(i) * 220 / 7.5);
     this.apron = mesh(apron, M.concrete, root, { cast: false });
@@ -230,7 +234,7 @@ export class HangarStation {
   async enter(lab, opts = {}) {
     this.lab = lab;
     if (opts.mode) this.mode = opts.mode;
-    await lab.setAtmosphere({ env: 'room', azimuth: 200, elevation: 38, turbidity: 2.6, rayleigh: 1.1, exposure: 0.74, envIntensity: 0.5, sunIntensity: 2.6, hemi: 0.25, fog: ['#c9d6dc', 120, 900] });
+    await lab.setAtmosphere({ env: 'room', azimuth: 200, elevation: 38, turbidity: 2.6, rayleigh: 1.1, exposure: 0.66, envIntensity: 0.42, sunIntensity: 2.6, hemi: 0.25, fog: ['#c9d6dc', 120, 900] });
     let style = 'workshop'; try { style = localStorage.getItem('flight-hangar') || 'workshop'; } catch { /* ignore */ }
     this.applyStyle(style);
     lab.focusShadow(new THREE.Vector3(0, 0, -6), 34, 160);
@@ -369,5 +373,11 @@ export class HangarStation {
     this.trainer.root.position.set(0, 0, 0);
   }
   exit(lab) { lab.ui.setHint(''); }
-  update(dt, t) { this.trainer.update(dt, t); }
+  update(dt, t) { this.trainer.update(dt, t); this.refl?.update(); }
+
+  /** Quality changed in the settings while in the hangar. */
+  applyQuality(q) {
+    if (q.reflections && !this.refl) this.refl = addPlanarReflection(this.lab, this.floor, { width: this.floorSize[0], depth: this.floorSize[1], strength: 0.34 });
+    this.refl?.setEnabled(!!q.reflections);
+  }
 }

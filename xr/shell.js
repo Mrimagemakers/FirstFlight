@@ -146,7 +146,7 @@ export class Shell {
         <label class="chk"><input type="checkbox" id="set-ao" ${s.ao ? 'checked' : ''}> Ambient occlusion</label>
         <label class="chk"><input type="checkbox" id="set-bloom" ${s.bloom ? 'checked' : ''}> Bloom &amp; light glow</label>
         <label class="chk"><input type="checkbox" id="set-flare" ${s.flare ? 'checked' : ''}> Sun lens flare</label>
-        <small>Effects apply on screens. Headsets render without post-processing for a steady frame rate.</small>
+        <small><b>Ultra</b> adds real-time water reflections, tree shadows, sharper rock and terrain detail, smoother edges and a sharper VR picture (needs a powerful graphics card). Glow and ambient-occlusion effects apply on screens; headsets skip them for a steady frame rate.</small>
       </fieldset>
       <fieldset><legend>Audio</legend>
         <label>Master volume<input type="range" id="set-volume" min="0" max="1" step="0.05" value="${s.volume}"></label>
@@ -173,7 +173,7 @@ export class Shell {
       let v = i.type === 'checkbox' ? i.checked : i.type === 'range' ? +i.value : i.value;
       if (k === 'snapAngle' || k === 'seatedOffset') v = +v;
       setSetting(k, v);
-      if (k === 'quality') this.lab.ui.toast('Quality: ' + QUALITY[v].label + '. Some changes apply when a station reloads.');
+      if (k === 'quality') this.lab.ui.toast('Quality: ' + QUALITY[v].label + '. Terrain density and VR resolution update the next time you load a station or enter VR.');
     }));
     body.querySelector('#set-volume').addEventListener('input', e => setSetting('volume', +e.target.value));
     body.querySelector('[data-act=reset]').onclick = () => { resetSettings(); this.settings(from); };

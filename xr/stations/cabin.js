@@ -208,7 +208,7 @@ export class CabinStation {
     for (const x of [-0.18, 0.18]) { rod(chair, [x, 0.08, -0.15], [x, 0.48, -0.15], 0.015, M.aluminum); rod(chair, [x, 0.08, 0.2], [x, 1.2, 0.2], 0.015, M.aluminum); cyl(chair, 0.07, 0.07, 0.04, [x, 0.07, 0.2], M.rubber, [0, 0, Math.PI / 2], 14); }
 
     // -------------------------------------------------------------- lights
-    for (let z = Z0 + 2; z < Z0 + L - 1; z += 5) { const p = new THREE.PointLight(0xfff3e2, 4.5, 9, 1.4); p.position.set(0, 2.15, z); root.add(p); }
+    for (let z = Z0 + 2; z < Z0 + L - 1; z += 5) { const p = new THREE.PointLight(0xfff3e2, 3.3, 9, 1.4); p.position.set(0, 2.05, z); root.add(p); }
     const hemi = new THREE.HemisphereLight(0xffffff, 0x5a5048, 0.6); root.add(hemi);
     this.bounds = (p) => {
       const zMin = Z0 + 0.45, zMax = Z0 + L - 1.3;
@@ -254,7 +254,7 @@ export class CabinStation {
 
   async enter(lab, opts = {}) {
     this.lab = lab;
-    await lab.setAtmosphere({ env: 'room', exposure: 0.74, envIntensity: 0.5, sunIntensity: 0, hemi: 0.12, showSky: false, background: 0x0c1218 });
+    await lab.setAtmosphere({ env: 'room', exposure: 0.66, envIntensity: 0.45, sunIntensity: 0, hemi: 0.12, showSky: false, background: 0x0c1218 });
     lab.shadowFollow = null;
     lab.floors = [this.floor];
     lab.controls.setWalk({ position: new THREE.Vector3(-0.25, 0, -2.6), yaw: Math.PI * 0.97, pitch: -0.06, eye: 1.62, bounds: this.bounds, speed: 1.6, fov: 72 });
