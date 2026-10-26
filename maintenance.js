@@ -161,7 +161,7 @@
     ['rivet', '⊙', 'Rivet calculator', 'Diameter, edge distance, pitch, length and shop-head size, plus a part-number decoder.'],
     ['units', '⇄', 'Unit converter', 'Torque, pressure, temperature, length, volume, weight and fuel weight.'],
     ['ata', '▤', 'ATA chapter lookup', 'Find the chapter for any aircraft system.'],
-    ['logbook', '✎', 'Logbook entry builder', 'Practise writing a complete 14 CFR 43.9 maintenance record entry.'],
+    ['logbook', '✎', 'Logbook entry builder', 'Practice writing a complete 14 CFR 43.9 maintenance record entry.'],
     ['dirty', '!', 'Dirty Dozen self-check', 'Spot today’s human-factors risks before you start a task.'],
   ];
   const RECORDS = ['mxlog', 'toolcrib', 'calibration', 'deferrals'];
@@ -313,7 +313,7 @@ ${row('Example part number', `${head}AD${d32}-${l16}`)}
   const LB_FIELDS = [['date', 'Date of completion', 'date'], ['aircraft', 'Aircraft make / model'], ['reg', 'Registration (N-number)'], ['serial', 'Aircraft serial number'], ['tt', 'Total time / tach (hours)'], ['work', 'Description of work performed', 'textarea'], ['data', 'Data reference (manual, chapter, task, revision)'], ['parts', 'Parts installed (P/N, S/N)', 'textarea'], ['performer', 'Performed by (if different from approver)'], ['name', 'Approving person'], ['cert', 'Kind of certificate', 'select', ['A&P mechanic', 'Airframe mechanic', 'Powerplant mechanic', 'Repairman', 'Repair station', 'A&P with IA']], ['certno', 'Certificate number']];
   function logbookPage() {
     const d = mx.calc.logbook ||= { date: new Date().toISOString().slice(0, 10), aircraft: 'First Flight Trainer FF-1', reg: 'N123FF', work: 'Removed and replaced left main tire due to wear beyond limits. Torqued axle nut and installed new cotter pin. Operational check good.', data: 'AMM 32-40-01, Rev 12' };
-    $('#view').innerHTML = `${toolHead('Logbook entry builder', 'Practise a complete maintenance record entry. 14 CFR 43.9 requires a description of the work (or reference to acceptable data), the completion date, the performer’s name if different, and the approver’s signature, certificate number and kind of certificate.')}
+    $('#view').innerHTML = `${toolHead('Logbook entry builder', 'Practice a complete maintenance record entry. 14 CFR 43.9 requires a description of the work (or reference to acceptable data), the completion date, the performer’s name if different, and the approver’s signature, certificate number and kind of certificate.')}
 <div class="mx-calc-grid"><form class="card mx-calc" oninput="mxLog()" onsubmit="mxLogSave(event)"><div class="fields">${LB_FIELDS.map(([k, l, type = 'text', opts]) => type === 'textarea' ? `<label>${l}<textarea name="${k}">${esc(d[k] || '')}</textarea></label>` : type === 'select' ? `<label>${l}<select name="${k}">${opts.map(o => `<option ${o === d[k] ? 'selected' : ''}>${o}</option>`).join('')}</select></label>` : `<label>${l}<input name="${k}" type="${type}" value="${esc(d[k] || '')}"></label>`).join('')}</div>
 <div class="row"><button class="btn" type="submit">Save practice entry</button><button class="btn secondary" type="button" onclick="mxLogCopy()">Copy text</button><button class="btn secondary" type="button" onclick="printSection('#lb-out','Practice maintenance record entry')">Print</button></div></form>
 <div><div class="card mx-logbook" id="lb-out"></div><div id="lb-check"></div></div></div>

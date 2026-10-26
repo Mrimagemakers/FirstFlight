@@ -36,7 +36,7 @@
   const groups = [
     ['Start here', [['home', '◈', 'Welcome'], ['hub', '✦', 'Careers & new-hire hub']]],
     ['Careers & new hires', [['new', '→', 'I’m new to aviation'], ['experienced', '★', 'I have experience'], ['paths', '⇡', 'Career paths'], ['onboarding', '◷', 'First 90 days & Day 1'], ['tools', '▦', 'Practical tools'], ['scenarios', '?', 'Orientation scenarios'], ['learning', '▶', 'Videos & resources'], ['jobs', '⌕', 'Job search']]],
-    ['XR training lab', [['sim', '◎', '3D & VR training lab']]],
+    ['XR training lab', [['sim', '◎', '3D & VR training lab'], ['ar', '⧉', 'AR aircraft explorer']]],
     ['Pilot academy', [['learn', '▤', 'Pilot handbook'], ['courses', '▤', 'Courses'], ['tutorials', '▷', 'Tutorials'], ['study', '◇', 'Study desk'], ['quiz', '◎', 'Knowledge check'], ['worlds', '◉', 'Flying environments'], ['hangars', '⌂', 'Hangar collection'], ['career', '◈', 'Pilot career prep'], ['encyclopedia', '▥', 'Encyclopedia'], ['resources', '▧', 'Resource library']]],
   ];
   const nav = $('nav');
@@ -44,7 +44,7 @@
   nav.querySelectorAll('button').forEach(b => (b.onclick = () => { if (b.dataset.page === 'encyclopedia' && typeof encArticle !== 'undefined') encArticle = null; document.body.classList.remove('nav-open'); if (b.dataset.page === 'tools') return window.openTool(null); go(b.dataset.page); }));
   const brand = $('.brand'); if (brand) brand.innerHTML = '↗ <span>FIRST FLIGHT<small>AVIATION CAREERS & TRAINING</small></span>';
   const label = $('.label'); if (label) label.remove();
-  const bottom = $('.aside-bottom'); if (bottom) bottom.innerHTML = '<span class="badge">CAREERS · XR · ACADEMY</span><p>Explore aviation work.<br>Practise it safely in 3D and VR.</p><small>U.S.-focused learning framework</small>';
+  const bottom = $('.aside-bottom'); if (bottom) bottom.innerHTML = '<span class="badge">CAREERS · XR · ACADEMY</span><p>Explore aviation work.<br>Practice it safely in 3D and VR.</p><small>U.S.-focused learning framework</small>';
   $('header span').textContent = 'AVIATION CAREERS & NEW-HIRE LEARNING HUB';
   $('aside').insertAdjacentHTML('afterbegin', '<button class="menu-btn" aria-label="Open navigation" onclick="document.body.classList.toggle(\'nav-open\')">☰</button>');
   $('footer').innerHTML = 'Educational exploration only. This hub does not issue certificates, airport access, employment qualifications or flight-training credit. Employer training, airport access requirements and task-specific authorization determine when someone can work independently. Simplified simulations; learn real procedures from your employer, airline or instructor and the approved documentation. 3D lab lighting uses CC0 HDR imagery from Poly Haven.';
@@ -60,7 +60,7 @@
     };
   };
   const crumbs = (items) => `<div class="crumbs">${items.map(([p, t]) => p ? `<button class="text-btn" onclick="go('${p}')">${t}</button>` : `<span>${t}</span>`).join(' <i>/</i> ')}</div>`;
-  const xrButton = (key, label = 'Practise in 3D') => `<button class="btn xr-btn" onclick="openLab3D('${key}')">◎ ${label}</button>`;
+  const xrButton = (key, label = 'Practice in 3D') => `<button class="btn xr-btn" onclick="openLab3D('${key}')">◎ ${label}</button>`;
   window.openLab3D = (key) => { try { localStorage.setItem('academy-launch', key); } catch { /* ignore */ } go('sim'); };
 
   // ---------------------------------------------------------------- WELCOME (home)
@@ -70,7 +70,7 @@
 <section class="welcome">
   <div class="welcome-copy">
     <span class="eyebrow">AVIATION CAREERS & NEW-HIRE LEARNING HUB</span>
-    <h1>Find your place in aviation.<br>Then practise it in 3D.</h1>
+    <h1>Find your place in aviation.<br>Then practice it in 3D.</h1>
     <p>Explore real airport and airline careers, prepare for your first 90 days, and walk a realistic ramp, cabin, hangar and cockpit in your browser or VR headset.</p>
     <div class="start-cards">
       <button class="start-card" onclick="go('new')"><span class="sc-num">01</span><b>I’m new to aviation</b><small>Explore entry-level roles, build an application plan and get ready for Day 1.</small><em>Start here →</em></button>
@@ -84,10 +84,10 @@
   <div class="stat"><span class="icon">?</span><div><strong>${p.scenarios} / ${HUB_SCENARIOS.length}</strong><small>Orientation scenarios</small></div></div>
   <div class="stat"><span class="icon">◎</span><div><strong>${p.xrTasks}</strong><small>3D training tasks done</small></div></div>
 </div>
-<div class="section-head"><h2>Three ways to learn</h2><span class="eyebrow muted">EXPLORE · PREPARE · PRACTISE</span></div>
+<div class="section-head"><h2>Three ways to learn</h2><span class="eyebrow muted">EXPLORE · PREPARE · PRACTICE</span></div>
 <div class="pillars">
   <article class="card image-card">${img('ramp-agent', 'A ramp service view with a belt loader at an open cargo door')}<div class="image-card-body"><span class="num">01 / CAREERS & NEW HIRES</span><h3>Plan your aviation career</h3><p>Six entry-level roles, nine experienced paths, a 90-day new-hire plan, a Day-1 agenda, practical tools and a full aviation maintenance center.</p><button class="text-btn" onclick="go('hub')">Open the hub →</button> <button class="text-btn" onclick="go('mx')">Maintenance center →</button></div></article>
-  <article class="card image-card">${img('lab-flight', 'A training airplane flying over an alpine valley in the First Flight 3D lab')}<div class="image-card-body"><span class="num">02 / XR TRAINING LAB</span><h3>Practise in 3D and VR</h3><p>Walk the ramp and collect FOD, find cabin safety equipment, explore aircraft systems, and fly six realistic regions.</p><button class="text-btn" onclick="go('sim')">Enter the lab →</button></div></article>
+  <article class="card image-card">${img('lab-flight', 'A training airplane flying over an alpine valley in the First Flight 3D lab')}<div class="image-card-body"><span class="num">02 / XR TRAINING LAB</span><h3>Practice in 3D and VR</h3><p>Walk the ramp and collect FOD, find cabin safety equipment, explore aircraft systems, and fly six realistic regions.</p><button class="text-btn" onclick="go('sim')">Enter the lab →</button></div></article>
   <article class="card image-card">${img('cockpit', 'The instrument panel of a training airplane cockpit')}<div class="image-card-body"><span class="num">03 / PILOT ACADEMY</span><h3>Keep your pilot dream flying</h3><p>Ground-school chapters, courses, flashcards, sample tests and an aviation encyclopedia for future pilots.</p><button class="text-btn" onclick="go('learn')">Open the academy →</button></div></article>
 </div>`;
   };
@@ -106,7 +106,7 @@
     ['paths', 'Career paths', `${HUB_ENTRY_ROLES.length} entry-level and ${HUB_SPECIALIST_ROLES.length} experienced roles with learning priorities and advancement.`, 'cargo'],
     ['onboarding', 'First 90 days & Day 1', `From application to day 90 · ${p.stages} of ${HUB_STAGES.length} stages done · full first-day agenda.`, 'gate-agent'],
     ['tools', 'Practical tools', `Career selector, application tracker, training passport and four more · ${p.toolRecords} records saved.`, 'technician'],
-    ['scenarios', 'Orientation scenarios', `${p.scenarios} of ${HUB_SCENARIOS.length} complete · practise each one again inside the 3D lab.`, 'safety'],
+    ['scenarios', 'Orientation scenarios', `${p.scenarios} of ${HUB_SCENARIOS.length} complete · practice each one again inside the 3D lab.`, 'safety'],
     ['learning', 'Videos & resources', `${p.videos} of ${HUB_VIDEOS.length} activities done · FAA, IATA, OSHA and NATA resources.`, 'flight-attendant'],
     ['jobs', 'Job search', 'Employer career portals and a reminder of what to check before you apply.', 'station-manager'],
     ['mx', 'Aviation maintenance', 'Maintenance careers, the A&P pathway, shop-skill tutorials and technician calculators.', 'mx-walkaround'],
@@ -124,7 +124,7 @@
   <li><span>1</span><div><h3>Compare entry-level roles</h3><p>Ramp, cargo, cabin appearance, flight attendant, apprentice technician and ticket/gate roles. Look at schedules, physical demands and qualifications.</p><button class="btn" onclick="go('paths')">Explore career paths</button> <button class="btn secondary" onclick="openTool('selector')">Use the career selector</button></div></li>
   <li><span>2</span><div><h3>Prepare your applications</h3><p>Tailor your résumé and prepare examples of teamwork, reliability, customer service and following procedures.</p><button class="btn" onclick="openTool('tracker')">Open the application tracker</button> <button class="btn secondary" onclick="go('jobs')">Job-search links</button></div></li>
   <li><span>3</span><div><h3>Know what preboarding and Day 1 look like</h3><p>Documents and screening, arrival instructions, a mentor contact, then a full orientation day.</p><button class="btn" onclick="go('onboarding')">See the 90-day path & Day-1 agenda</button></div></li>
-  <li><span>4</span><div><h3>Practise safety thinking</h3><p>Six orientation scenarios cover FOD, equipment limits, damaged cargo, unlabeled chemicals, unclear instructions and station transfers.</p><button class="btn" onclick="go('scenarios')">Try the scenarios</button> ${xrButton('ramp', 'Walk the ramp in 3D')}</div></li>
+  <li><span>4</span><div><h3>Practice safety thinking</h3><p>Six orientation scenarios cover FOD, equipment limits, damaged cargo, unlabeled chemicals, unclear instructions and station transfers.</p><button class="btn" onclick="go('scenarios')">Try the scenarios</button> ${xrButton('ramp', 'Walk the ramp in 3D')}</div></li>
   <li><span>5</span><div><h3>Watch, then do an activity</h3><p>Pair each official video with a short activity and keep notes for your first conversations with a trainer.</p><button class="btn" onclick="go('learning')">Videos & resources</button></div></li>
 </ol>
 <div class="two-col">
@@ -158,7 +158,7 @@
 <div class="career-tabs"><button class="${pathTab === 'entry' ? 'active' : ''}" onclick="hubPathTab('entry')">Entry-level careers</button><button class="${pathTab === 'spec' ? 'active' : ''}" onclick="hubPathTab('spec')">Experienced & specialist paths</button></div>
 ${pathTab === 'entry' ? `
 <div class="row filters"><span class="muted small">Preferred work:</span>${[['all', 'All'], ...HUB_SELECTOR.work].map(([k, t]) => `<button class="chip ${pathFilter === k ? 'on' : ''}" onclick="hubPathFilter('${k}')">${t}</button>`).join('')}</div>
-<div class="role-grid entry">${roles.map(r => `<article class="card role-card big">${img(r.img, r.title)}<div><span class="num">ENTRY LEVEL</span><h3>${esc(r.title)}</h3><p>${esc(r.does)}</p><h4>Initial learning priorities</h4><ul class="tags">${r.learn.map(l => `<li>${esc(l)}</li>`).join('')}</ul><h4>Possible advancement</h4><div class="ladder">${r.ladder.map(s => `<span>${esc(s)}</span>`).join('<i>→</i>')}</div>${r.note ? `<p class="small note-inline">${esc(r.note)} ${ext(r.noteLink, 'Source')}</p>` : ''}<div class="row">${xrButton(r.xr, r.xr === 'ramp' ? 'Practise on the ramp' : r.xr === 'cabin' ? 'Practise in the cabin' : 'Practise in the hangar')}</div></div></article>`).join('')}</div>
+<div class="role-grid entry">${roles.map(r => `<article class="card role-card big">${img(r.img, r.title)}<div><span class="num">ENTRY LEVEL</span><h3>${esc(r.title)}</h3><p>${esc(r.does)}</p><h4>Initial learning priorities</h4><ul class="tags">${r.learn.map(l => `<li>${esc(l)}</li>`).join('')}</ul><h4>Possible advancement</h4><div class="ladder">${r.ladder.map(s => `<span>${esc(s)}</span>`).join('<i>→</i>')}</div>${r.note ? `<p class="small note-inline">${esc(r.note)} ${ext(r.noteLink, 'Source')}</p>` : ''}<div class="row">${xrButton(r.xr, r.xr === 'ramp' ? 'Practice on the ramp' : r.xr === 'cabin' ? 'Practice in the cabin' : 'Practice in the hangar')}</div></div></article>`).join('')}</div>
 <p class="small muted">Delta explicitly identifies ramp, cargo, cabin experience and ticket/gate positions as entry-level opportunities. Requirements vary by posting. ${ext('deltaACS', 'Delta Airport Customer Service & Cargo')}</p>` : `
 <div class="role-grid">${HUB_SPECIALIST_ROLES.map(r => `<article class="card role-card">${img(r.img, r.title)}<div><h3>${esc(r.title)}</h3><p>${esc(r.does)}</p><p class="focus"><b>Development focus:</b> ${esc(r.focus)}</p></div></article>`).join('')}</div>
 <div class="note"><p>These are potential development routes, not automatic promotions. For technical requirements use the ${ext('bls', 'BLS career guide')}; for dispatch, the ${ext('dispatch', 'FAA dispatcher course directory')}.</p></div>`}`;
@@ -333,7 +333,7 @@ ${k === 'mxlog' ? `<div class="note"><strong>Why this log matters</strong><p>${e
     try { const l = localStorage.getItem('academy-launch'); if (l) launch = ({ flight: 'flight', preflight: 'walkaround', engine: 'hangar:engine', fuel: 'hangar:fuel', electrical: 'hangar:electrical' })[l] || l; } catch { /* ignore */ }
     try { const w = localStorage.getItem('flight-world'); if (launch === 'flight' && w) launch = 'flight:' + w; localStorage.removeItem('academy-launch'); } catch { /* ignore */ }
     $('#view').innerHTML = `
-<div class="lab-head"><div><span class="eyebrow muted">XR TRAINING LAB · THREE.JS + WEBXR</span><h1>Practise aviation work in 3D and VR.</h1><p class="muted">Five stations built with physically based materials, real-world HDR lighting and a realistic sky. Works with a mouse, touch screen or a WebXR headset such as Meta Quest.</p></div><a class="btn secondary" href="lab.html#${launch}" target="_blank" rel="noopener">Open full screen ↗</a></div>
+<div class="lab-head"><div><span class="eyebrow muted">XR TRAINING LAB · THREE.JS + WEBXR</span><h1>Practice aviation work in 3D and VR.</h1><p class="muted">Five stations built with physically based materials, real-world HDR lighting and a realistic sky. Works with a mouse, touch screen or a WebXR headset such as Meta Quest.</p></div><a class="btn secondary" href="lab.html#${launch}" target="_blank" rel="noopener">Open full screen ↗</a></div>
 <div class="lab-frame"><iframe id="flight3d" title="First Flight XR training lab" src="lab.html#${launch}" allow="xr-spatial-tracking; fullscreen; gamepad; autoplay" allowfullscreen></iframe></div>
 <div class="lab-stats" id="labStats"></div>
 <div class="station-grid">${STATIONS.map(([k, t, d, im], i) => `<button class="station" onclick="labGo('${k}')">${img(im, t)}<span><em>0${i + 1}</em><b>${t}</b><small>${d}</small></span></button>`).join('')}</div>
@@ -352,6 +352,21 @@ ${k === 'mxlog' ? `<div class="note"><strong>Why this log matters</strong><p>${e
     f.scrollIntoView({ behavior: 'smooth', block: 'center' });
   };
 
+  // ---------------------------------------------------------------- AR AIRCRAFT EXPLORER
+  const AR_MODELS = [['trainer', 'Training airplane'], ['piston', 'Piston engine & propeller'], ['wing', 'Wing structure'], ['tail', 'Tail (empennage)'], ['gear', 'Landing gear'], ['panel', 'Instrument panel'], ['airliner', 'Narrow-body airliner'], ['turbofan', 'Turbofan engine (cutaway)'], ['jetgear', 'Airliner main landing gear']];
+  function arPage() {
+    $('#view').innerHTML = `
+<div class="lab-head"><div><span class="eyebrow muted">AUGMENTED REALITY · THREE.JS + WEBXR</span><h1>Put an airplane on your desk.</h1><p class="muted">Nine detailed 3D models of a training airplane, an airliner and their key parts. Explode them, tap the numbered labels to learn each part, then place them in your room with augmented reality, at tabletop size or full size.</p></div><a class="btn" href="ar.html" target="_blank" rel="noopener">Open the AR explorer ↗</a></div>
+<div class="lab-frame"><iframe id="arFrame" title="First Flight AR aircraft explorer" src="ar.html" allow="xr-spatial-tracking; fullscreen" allowfullscreen style="width:100%;height:min(76vh,760px);min-height:520px;border:0;display:block"></iframe></div>
+<div class="station-grid" style="margin-top:16px">${AR_MODELS.map(([k, t]) => `<button class="station" onclick="arModel('${k}')"><img src="assets/renders/ar-${k}.jpg" alt="" loading="lazy" onerror="this.src='assets/renders/lab-engine.jpg'"><span><b>${t}</b></span></button>`).join('')}</div>
+<div class="three-notes">
+  <div class="card"><span class="num">ANDROID</span><h3>Chrome on ARCore phones</h3><p>Tap <b>View in AR</b>, move the phone to find a table or the floor, then tap to place. Buttons rotate, resize, show the real size, explode the model and switch labels.</p></div>
+  <div class="card"><span class="num">IPHONE & IPAD</span><h3>Safari with AR Quick Look</h3><p>Tap <b>View in AR</b> and the model opens in Apple’s AR viewer. Pinch to resize, drag to move, and switch between tabletop and real size.</p></div>
+  <div class="card"><span class="num">META QUEST</span><h3>Passthrough mixed reality</h3><p>Open the explorer in the Quest Browser and tap <b>View in AR</b>. Pull the trigger to place the model; the thumbstick rotates and resizes; A explodes; B shows labels.</p></div>
+</div>`;
+  }
+  window.arModel = k => { const f = document.getElementById('arFrame'); try { f.contentWindow.ffAR.load(k); f.scrollIntoView({ behavior: 'smooth', block: 'center' }); } catch { f.src = 'ar.html?model=' + k; } };
+
   // ---------------------------------------------------------------- resources page: keep supplied references
   const baseResources = resources;
   resources = function () {
@@ -360,7 +375,7 @@ ${k === 'mxlog' ? `<div class="note"><strong>Why this log matters</strong><p>${e
   };
 
   // ---------------------------------------------------------------- router
-  const PAGES = { hub: hubPage, new: newPage, experienced: experiencedPage, paths: pathsPage, onboarding: onboardingPage, learning: learningPage, scenarios: scenariosPage, jobs: jobsPage, tools: toolsPage };
+  const PAGES = { ar: arPage, hub: hubPage, new: newPage, experienced: experiencedPage, paths: pathsPage, onboarding: onboardingPage, learning: learningPage, scenarios: scenariosPage, jobs: jobsPage, tools: toolsPage };
   const prev = render;
   render = function () {
     document.body.dataset.page = page;
@@ -370,6 +385,6 @@ ${k === 'mxlog' ? `<div class="note"><strong>Why this log matters</strong><p>${e
   };
   // Older pages and links that still point to the 3D cockpit
   window.addEventListener('hashchange', () => { const p = location.hash.slice(1); if (PAGES[p] && p !== page) go(p); });
-  const initial = location.hash.slice(1);
+  const initial = window.__ffHash || location.hash.slice(1);
   if (PAGES[initial] || initial === 'sim' || initial === 'home' || !initial) go(initial || 'home'); else render();
 })();

@@ -10,10 +10,10 @@ Replace anything in **[brackets]** before you submit.
 - **Package ID (Android/Quest):** `com.pengamepublishing.firstflight`. Keep this ID for every future update.
 
 ## Short description (80 characters max)
-Practise real airport and airline work in VR: ramp, cargo, cabin, hangar and flight.
+Practice real airport and airline work in VR: ramp, cargo, cabin, hangar and flight.
 
 ## Tagline
-Find your place in aviation. Then practise it in 3D.
+Find your place in aviation. Then practice it in 3D.
 
 ## Long description
 First Flight puts you on the ramp, in the cabin, in the maintenance hangar and in the cockpit, so you can learn how aviation work really happens before your first day on the job.
@@ -38,6 +38,7 @@ First Flight is an educational simulation. It does not provide flight-training c
 - Realistic lighting, sky, terrain, water and cockpit, with an Ultra graphics mode: real-time water and hangar-floor reflections, tree shadows, detailed rock and forests, and a sharper VR picture
 - 6 flying regions and 4 flight missions
 - 11 workplace safety scenarios and FOD, cabin and tool-control challenges
+- AR aircraft explorer: 9 detailed 3D models (training airplane, airliner, piston and turbofan engines, wing, tail, landing gear, instrument panel) to explode, label and place in your room with augmented reality
 - Careers hub with 15 roles, a 90-day plan and new-hire tools
 - Aviation Maintenance Center: 14 maintenance careers, the FAA A&P pathway, 11 interactive shop-skill tutorials and technician calculators (torque, rivets, units, ATA lookup, logbook entries)
 - Comfort options: teleport, snap or smooth turning, seated play

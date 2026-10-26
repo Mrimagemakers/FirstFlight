@@ -168,7 +168,7 @@ const MX_TUTORIALS = [
     intro: 'Aircraft maintenance follows approved and acceptable data. Mechanics find tasks quickly because most manuals are organized by ATA chapter.',
     steps: [
       ['Know the main documents', 'Aircraft maintenance manual (AMM) for procedures, illustrated parts catalog (IPC) for part numbers, structural repair manual (SRM) for repairs, wiring diagram manual (WDM) and the minimum equipment list (MEL).'],
-      ['Find the system by ATA chapter', 'For example 24 is electrical power, 28 is fuel, 32 is landing gear and 71–80 cover the powerplant. Use the ATA lookup tool to practise.'],
+      ['Find the system by ATA chapter', 'For example 24 is electrical power, 28 is fuel, 32 is landing gear and 71–80 cover the powerplant. Use the ATA lookup tool to practice.'],
       ['Check the revision', 'Confirm the manual is current and applies to the aircraft’s serial number and modification status.'],
       ['Check for airworthiness directives', 'Airworthiness directives (ADs) are mandatory FAA requirements. Service bulletins (SBs) come from the manufacturer and become mandatory only when an AD or the operator’s program requires them.'],
       ['Follow the task step by step', 'Don’t work from memory. Note warnings, cautions, torque values, special tools and consumables before you begin.'],
@@ -185,7 +185,7 @@ const MX_TUTORIALS = [
       ['Record the completion date', 'The date the work was completed.'],
       ['Name the person who did the work', 'If someone other than the approving person performed the work, record their name.'],
       ['Sign for return to service', 'If the work was performed satisfactorily: signature, certificate number and kind of certificate of the person approving it. That signature approves return to service only for the work performed.'],
-      ['Write so the next mechanic understands', 'Be specific: what was found, what was done, which parts (with part and serial numbers) and which data you used. Use the logbook entry builder to practise.'],
+      ['Write so the next mechanic understands', 'Be specific: what was found, what was done, which parts (with part and serial numbers) and which data you used. Use the logbook entry builder to practice.'],
     ],
     quiz: [
       { q: 'Which of these is NOT required in a 43.9 entry?', a: ['Date of completion', 'Total time the job took you', 'Certificate number of the approving person'], c: 1, why: 'Labor time isn’t one of the four 43.9 elements (your employer may still track it).' },
@@ -306,6 +306,6 @@ const MX_RECORD_TOOLS = {
     fields: [['tool', 'Tool ID / description'], ['person', 'Signed out to'], ['aircraft', 'Aircraft / task'], ['out', 'Out (date & time)', 'datetime-local'], ['returned', 'Returned (date & time)', 'datetime-local'], ['condition', 'Condition on return', 'select', ['—', 'Serviceable', 'Damaged: tagged', 'Missing: reported']]] },
   calibration: { title: 'Calibration tracker', icon: '◔', blurb: 'Keep torque wrenches, gauges and meters in calibration.',
     fields: [['tool', 'Tool'], ['serial', 'Serial number'], ['last', 'Last calibrated', 'date'], ['due', 'Calibration due', 'date'], ['lab', 'Calibrated by'], ['status', 'Status', 'select', ['In service', 'Due soon', 'Overdue: removed from service', 'Out for calibration']]] },
-  deferrals: { title: 'Write-up & deferral tracker (practice)', icon: '⚑', blurb: 'Practise tracking defects, MEL deferrals and their deadlines.',
+  deferrals: { title: 'Write-up & deferral tracker (practice)', icon: '⚑', blurb: 'Practice tracking defects, MEL deferrals and their deadlines.',
     fields: [['aircraft', 'Aircraft'], ['defect', 'Defect description', 'textarea'], ['ata', 'ATA chapter'], ['mel', 'MEL item / category'], ['deferred', 'Deferred on', 'date'], ['due', 'Repair due by', 'date'], ['action', 'Corrective action', 'textarea'], ['status', 'Status', 'select', ['Open', 'Deferred', 'Parts on order', 'Closed']]] },
 };

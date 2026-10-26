@@ -3,6 +3,7 @@
 A Progressive Web App built on Three.js and WebXR, published by PenGame Publishing, LLC.
 
 * `lab.html` is **the app**: a title screen, five training stations, settings, VR and offline play.
+* `ar.html` is the **AR aircraft explorer** (`xr/ar/`, models in `xr/models/parts.js`): nine labelled 3D models with exploded views, WebXR AR on Android and Quest, and AR Quick Look on iPhone/iPad.
 * `index.html` is the **Aviation Careers & New-Hire Learning Hub** website, with the 3D lab embedded and the **Aviation Maintenance Center** (`maintenance-data.js`, `maintenance.js`): maintenance careers, the A&P pathway, tutorials and technician tools.
 
 ## Run it

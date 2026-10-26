@@ -346,7 +346,7 @@ export class HangarStation {
       title: found ? 'Every tool accounted for' : 'One tool is missing',
       html: found
         ? '<p>The torque wrench is back on the shadow board. In a real hangar, a missing tool stops work on that aircraft until it is found or the situation is handled under the organisation’s procedures. A tool left in an engine bay can become foreign object debris.</p><ul><li>Sign tools out and back in.</li><li>Check the board at the end of every task and shift.</li><li>Report a missing tool immediately; never “assume it’s somewhere”.</li></ul>'
-        : '<p>The crew kit’s shadow board shows an empty outline: the <b>torque wrench</b> was not returned. Walk around the airplane and find it before the aircraft can be released.</p><p class="q">Hint: look low, near the front of the airplane.</p><p class="src">Practise the habit the FAA’s maintenance human factors guidance emphasises: accurate records and tool accountability prevent errors.</p>',
+        : '<p>The crew kit’s shadow board shows an empty outline: the <b>torque wrench</b> was not returned. Walk around the airplane and find it before the aircraft can be released.</p><p class="q">Hint: look low, near the front of the airplane.</p><p class="src">Practice the habit the FAA’s maintenance human factors guidance emphasises: accurate records and tool accountability prevent errors.</p>',
       buttons: [
         { label: 'Back to systems lab', onClick: () => this.systems(this.component || 'airframe') },
         { label: 'Reset exercise', onClick: () => { lab.progress.tools = lab.progress.tools.filter(t => t !== 'torque'); lab.saveProgress(); this.lostTool.visible = true; this.toolControl(); } },

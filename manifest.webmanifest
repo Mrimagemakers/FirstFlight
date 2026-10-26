@@ -1,7 +1,7 @@
 {
   "name": "First Flight: Aviation Careers & XR Training",
   "short_name": "First Flight",
-  "description": "Practise airport and airline work in 3D and VR: ramp and cargo safety, cabin safety, aircraft systems and flight, plus an aviation careers and new-hire hub.",
+  "description": "Practice airport and airline work in 3D and VR: ramp and cargo safety, cabin safety, aircraft systems and flight, plus an aviation careers and new-hire hub.",
   "id": "./lab.html",
   "start_url": "./lab.html",
   "scope": "./",
@@ -25,6 +25,7 @@
   "shortcuts": [
     { "name": "Fly", "url": "./lab.html#flight", "icons": [{ "src": "icons/icon-192.png", "sizes": "192x192" }] },
     { "name": "Ramp & cargo", "url": "./lab.html#ramp", "icons": [{ "src": "icons/icon-192.png", "sizes": "192x192" }] },
+    { "name": "AR aircraft explorer", "url": "./ar.html", "icons": [{ "src": "icons/icon-192.png", "sizes": "192x192" }] },
     { "name": "Careers hub", "url": "./index.html#hub", "icons": [{ "src": "icons/icon-192.png", "sizes": "192x192" }] }
   ]
 }

@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>First Flight AR Aircraft Explorer</title>
+<meta name="description" content="Explore 3D models of a training airplane, an airliner and their key parts — engines, wings, tail, landing gear and instruments — and place them in your room with augmented reality.">
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#0f1d27">
+<link rel="icon" type="image/png" href="icons/favicon-64.png">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<link rel="stylesheet" href="xr/ar/portal.css">
+<script type="importmap">
+{ "imports": {
+  "three": "./vendor/three/build/three.module.js",
+  "three/addons/": "./vendor/three/examples/jsm/"
+} }
+</script>
+</head>
+<body>
+<div id="app">
+  <header class="top">
+    <a class="brand" href="index.html" target="_top">FIRST FLIGHT<span>AR AIRCRAFT EXPLORER</span></a>
+    <div class="top-right">
+      <a class="ghost" href="lab.html" target="_top">3D &amp; VR lab</a>
+      <button id="arBtn" class="primary">View in AR</button>
+    </div>
+  </header>
+
+  <nav id="catalog" aria-label="3D models"></nav>
+
+  <main id="stage">
+    <div id="loading" class="show"><div class="spin"></div><span>Building model…</span></div>
+    <div class="toolbar" role="toolbar" aria-label="Model tools">
+      <label class="explode">Exploded view<input id="explode" type="range" min="0" max="1" step="0.01" value="0" aria-label="Exploded view"></label>
+      <button id="labelsBtn" class="tog on" aria-pressed="true">Labels</button>
+      <button id="animBtn" class="tog on" aria-pressed="true">Animate</button>
+      <button id="resetBtn">Reset view</button>
+    </div>
+    <div id="hint">Drag to rotate · scroll or pinch to zoom · tap a label for details</div>
+  </main>
+
+  <aside id="info" aria-live="polite">
+    <span class="eyebrow" id="iGroup"></span>
+    <h1 id="iTitle"></h1>
+    <p id="iBlurb"></p>
+    <div id="part" hidden><span class="eyebrow">SELECTED PART</span><h2 id="pTitle"></h2><p id="pText"></p></div>
+    <h3>Key parts</h3>
+    <ol id="parts"></ol>
+    <p class="small">Original, simplified educational models. Not to be used for maintenance or flight. Always follow the manufacturer’s approved data.</p>
+  </aside>
+</div>
+
+<!-- shown inside the AR session (Android Chrome dom-overlay) -->
+<div id="arOverlay" hidden>
+  <div class="ar-top"><span id="arMsg">Move your phone slowly to find a table or the floor</span><button id="arExit" aria-label="Exit AR">✕</button></div>
+  <div id="arPart" hidden><b id="arPartTitle"></b><span id="arPartText"></span></div>
+  <div class="ar-bar">
+    <button data-ar="move">Move</button>
+    <button data-ar="left" aria-label="Rotate left">⟲</button>
+    <button data-ar="right" aria-label="Rotate right">⟳</button>
+    <button data-ar="smaller" aria-label="Smaller">−</button>
+    <button data-ar="bigger" aria-label="Bigger">+</button>
+    <button data-ar="real">Real size</button>
+    <button data-ar="explode">Explode</button>
+    <button data-ar="labels">Labels</button>
+  </div>
+</div>
+
+<div id="help" class="modal" hidden>
+  <div class="card">
+    <button class="close" data-close aria-label="Close">✕</button>
+    <h2>View in augmented reality</h2>
+    <div class="help-grid">
+      <div id="qr" aria-label="QR code to open this page on your phone"></div>
+      <div>
+        <p id="helpWhy"></p>
+        <ul>
+          <li><b>Android phones and tablets:</b> open this page in Chrome and tap <b>View in AR</b>. Point at a table or the floor, then tap to place the model.</li>
+          <li><b>iPhone and iPad:</b> open in Safari and tap <b>View in AR</b> to open the model in Apple’s AR viewer.</li>
+          <li><b>Meta Quest 3 / 3S / Pro:</b> open in the Quest Browser and tap <b>View in AR</b> to see the model in passthrough. Trigger places it; the thumbstick rotates and resizes; A explodes, B shows labels.</li>
+        </ul>
+        <p class="small">AR needs a secure (https) connection and a device that supports WebXR or AR Quick Look.</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script type="module" src="xr/ar/portal.js"></script>
+</body>
+</html>

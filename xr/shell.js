@@ -46,6 +46,7 @@ export class Shell {
         ${this.support.vr ? '<button data-act="vr">Enter VR</button>' : ''}
         <button data-act="settings">Settings</button>
         <button data-act="help">How to play</button>
+        <a href="ar.html" target="_top" data-act="ar">AR aircraft explorer ↗</a>
         <a href="index.html" target="_top" data-act="hub">Careers hub ↗</a>
         <button data-act="about">About</button>
       </nav>
@@ -121,6 +122,7 @@ export class Shell {
       <button data-act="settings">Settings</button>
       <button data-act="help">How to play</button>
       <button data-act="about">About &amp; licenses</button>
+      <a href="ar.html" target="_top">AR aircraft explorer ↗</a>
       <a href="index.html" target="_top">Careers hub ↗</a>
       <button data-act="title">Exit to title</button>
     </nav>`);

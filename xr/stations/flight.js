@@ -24,7 +24,7 @@ const MISSIONS = [
   { id: 1, title: 'A gentle climb', brief: 'Add power, raise the nose gently and climb to 2,500 ft. Hold ±100 ft with wings level for 15 seconds.' },
   { id: 2, title: 'Turn to a heading', brief: 'Make a gentle right turn to heading 120°, then hold ±10° at 2,000 ft ±150 ft with wings level for 15 seconds.' },
   { id: 3, title: 'Valley tour', brief: 'Fly through the five gold rings down the valley. Use small, early corrections and watch the terrain.' },
-  { id: 4, title: 'Free flight', brief: 'Explore the region. Watch the terrain, the horizon and your instruments, and practise small corrections.' },
+  { id: 4, title: 'Free flight', brief: 'Explore the region. Watch the terrain, the horizon and your instruments, and practice small corrections.' },
 ];
 const RINGS = [[60, 660, -2400], [-280, 700, -5200], [180, 740, -8000], [-120, 690, -10800], [90, 650, -13600]];
 
