@@ -94,3 +94,7 @@ body.embedded .brand span { display: none; }
 
 .primary.pulse { animation: pulse 1.4s ease-in-out infinite; }
 @keyframes pulse { 50% { box-shadow: 0 0 0 8px rgba(224,177,108,.25); } }
+.toolbar .zoom { display: inline-flex; gap: 0; }
+.toolbar .zoom button { min-width: 36px; font-size: 17px; font-weight: 700; padding: 5px 10px; line-height: 1; }
+.toolbar .zoom button:first-child { border-radius: 8px 0 0 8px; border-right: 0; }
+.toolbar .zoom button:last-child { border-radius: 0 8px 8px 0; }

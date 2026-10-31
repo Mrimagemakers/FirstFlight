@@ -64,6 +64,7 @@ holder.add(groundDisc, shadowCatcher);
 
 const controls = new OrbitControls(camera, renderer.domElement);
 controls.enableDamping = true; controls.dampingFactor = 0.08; controls.maxPolarAngle = Math.PI * 0.495;
+controls.zoomToCursor = true; controls.zoomSpeed = 1.2;
 
 // ------------------------------------------------------------------ labels (sprites with leader lines)
 function labelSprite(text, n) {
@@ -168,7 +169,7 @@ function frame(model) {
   const v = new THREE.Vector3(...(model.view || [0.62, 0.36, -0.72])).normalize();
   camera.position.copy(c).addScaledVector(v, dist);
   camera.near = Math.max(0.01, s / 400); camera.far = s * 40 + 50; camera.updateProjectionMatrix();
-  controls.minDistance = s * 0.15; controls.maxDistance = s * 4;
+  controls.minDistance = s * 0.04; controls.maxDistance = s * 6;
   // light and shadow sized to the model
   sun.position.set(c.x + s * 0.8, s * 1.8 + 1, c.z + s * 0.6); sun.target.position.copy(c);
   const sh = sun.shadow.camera; sh.left = sh.bottom = -s * 0.8; sh.right = sh.top = s * 0.8; sh.near = 0.1; sh.far = s * 6 + 10; sh.updateProjectionMatrix();
@@ -217,6 +218,13 @@ const tog = (btn, v) => { btn.classList.toggle('on', v); btn.setAttribute('aria-
 $('labelsBtn').onclick = () => { showLabels = !showLabels; tog($('labelsBtn'), showLabels); };
 $('animBtn').onclick = () => { animate = !animate; tog($('animBtn'), animate); };
 $('resetBtn').onclick = () => { if (current) { frame(current); select(-1); } };
+// zoom buttons: dolly toward the orbit target, eased over a few frames through OrbitControls itself
+// (so its damping, limits and cursor-zoom stay consistent)
+let zoomLog = 0;
+function zoomBy(f) { zoomLog += Math.log(f); }
+$('zoomIn').onclick = () => zoomBy(0.75);
+$('zoomOut').onclick = () => zoomBy(1.33);
+addEventListener('keydown', e => { if (e.target.closest?.('input, select, textarea') || renderer.xr.isPresenting) return; if (e.key === '+' || e.key === '=') zoomBy(0.8); if (e.key === '-' || e.key === '_') zoomBy(1.25); });
 const ray = new THREE.Raycaster(), ndc = new THREE.Vector2();
 let down = null;
 renderer.domElement.addEventListener('pointerdown', e => (down = [e.clientX, e.clientY]));
@@ -289,6 +297,7 @@ async function startAR() {
 }
 
 function onArSelect(e) {
+  if (pinch.pts.size >= 2 || performance.now() < pinch.until) return; // part of a pinch, not a tap
   if (ar.moving || !ar.placed) {
     if (ar.reticle.visible) ar.reticle.matrix.decompose(holder.position, q, sc);
     else if (ar.fallback) {
@@ -300,7 +309,7 @@ function onArSelect(e) {
     holder.rotation.set(0, Math.atan2(-(camPos.x - holder.position.x), -(camPos.z - holder.position.z)) + 0.6, 0);
     applyArScale(); arLight();
     holder.visible = true; ar.placed = true; ar.moving = false; ar.reticle.visible = false;
-    arMsg(ar.overlay ? 'Tap a label for details · use the buttons to rotate, resize or explode' : 'A: explode · B: labels · thumbstick: rotate and resize');
+    arMsg(ar.overlay ? 'Pinch to resize · tap a label for details · buttons rotate and explode' : 'A: explode · B: labels · thumbstick: rotate and resize');
     return;
   }
   // pick a label along the input ray (screen tap or controller)
@@ -340,14 +349,34 @@ function arFrame(frameXR) {
   }
 }
 
-$('arOverlay').addEventListener('beforexrselect', e => e.preventDefault()); // taps on buttons don't place/pick
+// taps on the AR buttons and card don't place or pick; taps anywhere else go to the scene
+$('arOverlay').addEventListener('beforexrselect', e => { if (e.target.closest?.('button, #arPart')) e.preventDefault(); });
+// two-finger pinch on the phone screen resizes the placed model
+const pinch = { pts: new Map(), d: 0, until: 0 };
+const pinchDist = () => { const [a, b] = [...pinch.pts.values()]; return Math.hypot(a.x - b.x, a.y - b.y) || 1; };
+addEventListener('touchstart', e => {
+  if (!ar.session) return;
+  for (const t of e.changedTouches) pinch.pts.set(t.identifier, { x: t.clientX, y: t.clientY });
+  if (pinch.pts.size >= 2) { pinch.d = pinchDist(); pinch.until = performance.now() + 400; }
+}, { passive: true });
+addEventListener('touchmove', e => {
+  if (!ar.session || !ar.placed) return;
+  for (const t of e.changedTouches) if (pinch.pts.has(t.identifier)) pinch.pts.set(t.identifier, { x: t.clientX, y: t.clientY });
+  if (pinch.pts.size < 2 || !pinch.d) return;
+  const d = pinchDist();
+  ar.real = false; document.querySelector('[data-ar=real]')?.classList.remove('on');
+  ar.scale = THREE.MathUtils.clamp(ar.scale * d / pinch.d, 0.1, 12); applyArScale();
+  pinch.d = d; pinch.until = performance.now() + 400;
+}, { passive: true });
+const pinchEnd = e => { for (const t of e.changedTouches) pinch.pts.delete(t.identifier); if (pinch.pts.size < 2) pinch.d = 0; };
+addEventListener('touchend', pinchEnd, { passive: true }); addEventListener('touchcancel', pinchEnd, { passive: true });
 document.querySelectorAll('[data-ar]').forEach(b => (b.onclick = () => {
   const k = b.dataset.ar;
   if (k === 'move') { ar.moving = true; holder.visible = false; arMsg('Point at a surface and tap to place'); }
   if (k === 'left') holder.rotation.y += Math.PI / 12;
   if (k === 'right') holder.rotation.y -= Math.PI / 12;
-  if (k === 'smaller') { ar.real = false; ar.scale = Math.max(0.2, ar.scale * 0.8); applyArScale(); }
-  if (k === 'bigger') { ar.real = false; ar.scale = Math.min(8, ar.scale * 1.25); applyArScale(); }
+  if (k === 'smaller') { ar.real = false; ar.scale = Math.max(0.1, ar.scale * 0.8); applyArScale(); }
+  if (k === 'bigger') { ar.real = false; ar.scale = Math.min(12, ar.scale * 1.25); applyArScale(); }
   if (k === 'real') { ar.real = !ar.real; applyArScale(); b.classList.toggle('on', ar.real); if (ar.real && current.size > 8) arMsg('Real size: about ' + Math.round(current.size) + ' m across. Step back or go outside!'); }
   if (k === 'explode') { setExplode(explodeTarget > 0.5 ? 0 : 1); b.classList.toggle('on', explodeTarget > 0.5); }
   if (k === 'labels') { showLabels = !showLabels; b.classList.toggle('on', showLabels); }
@@ -455,6 +484,7 @@ renderer.setAnimationLoop((t, frameXR) => {
   if (frameXR) arFrame(frameXR);
   else {
     if (tween) { tween.t = Math.min(1, tween.t + dt * 2.2); controls.target.lerpVectors(tween.from, tween.to, tween.t * tween.t * (3 - 2 * tween.t)); if (tween.t >= 1) tween = null; }
+    if (Math.abs(zoomLog) > 1e-4) { const step = zoomLog * Math.min(1, dt * 9); zoomLog -= step; if ('_scale' in controls) { controls._performCursorZoom = false; controls._scale *= Math.exp(step); } else zoomLog = 0; }
     controls.update();
   }
   if (current) updateLabels(renderer.xr.isPresenting ? renderer.xr.getCamera() : camera);

@@ -25,13 +25,33 @@ export class DesktopControls {
     this.tween = null;
     this.raycaster = new THREE.Raycaster();
     this.pointer = { down: false, x: 0, y: 0, sx: 0, sy: 0, moved: 0, id: null };
+    this.touches = new Map();   // active pointers, for two-finger pinch zoom when walking or in the cockpit
+    this.baseFov = 60;
 
     const d = this.dom;
+    d.style.touchAction = 'none';
+    // zoom: mouse wheel / trackpad pinch (orbit mode zooms with OrbitControls itself)
+    d.addEventListener('wheel', e => {
+      if (!this.enabled || this.mode === 'orbit') return;
+      e.preventDefault();
+      this.zoom(Math.exp(e.deltaY * (e.ctrlKey ? 0.01 : 0.0012)));
+    }, { passive: false });
+    // on-screen zoom buttons for touch screens and anyone without a wheel
+    const zc = document.createElement('div');
+    zc.className = 'zoom-ctl'; zc.setAttribute('role', 'group'); zc.setAttribute('aria-label', 'Zoom');
+    zc.innerHTML = '<button type="button" data-z="in" aria-label="Zoom in" title="Zoom in">+</button><button type="button" data-z="out" aria-label="Zoom out" title="Zoom out">−</button><button type="button" data-z="reset" aria-label="Reset zoom" title="Reset zoom">⟲</button>';
+    zc.querySelectorAll('button').forEach(b => (b.onclick = () => { const z = b.dataset.z; if (z === 'reset') this.resetZoom(); else this.zoom(z === 'in' ? 0.8 : 1.25, true); }));
+    document.body.append(zc);
+    addEventListener('keydown', e => {
+      if (['INPUT', 'SELECT', 'TEXTAREA'].includes(document.activeElement?.tagName) || this.lab.renderer.xr.isPresenting) return;
+      if (e.code === 'BracketRight' || e.code === 'KeyZ' && !e.shiftKey) this.zoom(0.85, true);
+      if (e.code === 'BracketLeft' || e.code === 'KeyZ' && e.shiftKey) this.zoom(1.18, true);
+    });
     d.style.touchAction = 'none';
     d.addEventListener('pointerdown', e => this.onDown(e));
     d.addEventListener('pointermove', e => this.onMove(e));
     d.addEventListener('pointerup', e => this.onUp(e));
-    d.addEventListener('pointercancel', () => (this.pointer.down = false));
+    d.addEventListener('pointercancel', e => { this.pointer.down = false; this.touches.delete(e.pointerId); this.pinch = null; });
     d.addEventListener('dblclick', () => { if (this.mode === 'cockpit') { this.cockpit.yaw = 0; this.cockpit.pitch = 0; } });
     addEventListener('keydown', e => {
       if (['INPUT', 'SELECT', 'TEXTAREA'].includes(document.activeElement?.tagName)) return;
@@ -56,8 +76,32 @@ export class DesktopControls {
     if (this.mode === 'orbit') { this.camera.position.copy(this.lastOrbit?.position || new THREE.Vector3(8, 4, 8)); this.orbit.update(); }
   }
 
+  /**
+   * Zoom by a factor (<1 = closer). Orbit views dolly toward the target within their limits; walking and
+   * cockpit views narrow the field of view like a camera lens (down to about 4× magnification).
+   */
+  zoom(f, smooth = false) {
+    if (this.mode === 'orbit') {
+      const o = this.orbit, off = this.camera.position.clone().sub(o.target);
+      const d = THREE.MathUtils.clamp(off.length() * f, o.minDistance, o.maxDistance);
+      const to = o.target.clone().add(off.setLength(d));
+      if (smooth) this.tween = { t: 0, duration: 0.25, fromP: this.camera.position.clone(), toP: to, fromT: o.target.clone(), toT: o.target.clone() };
+      else { this.camera.position.copy(to); o.update(); }
+      return;
+    }
+    const from = this.fovTween ? this.fovTween.to : this.camera.fov;   // keep stacking quick clicks
+    const fov = THREE.MathUtils.clamp(from * f, Math.max(12, this.baseFov / 4.5), Math.min(90, this.baseFov * 1.2));
+    if (smooth) this.fovTween = { from: this.camera.fov, to: fov, t: 0 };
+    else { this.fovTween = null; this.camera.fov = fov; this.camera.updateProjectionMatrix(); }
+  }
+
+  resetZoom() {
+    if (this.mode === 'orbit') { if (this.lastOrbit) this.flyTo(this.lastOrbit.position, this.lastOrbit.target, 0.6); return; }
+    this.fovTween = { from: this.camera.fov, to: this.baseFov, t: 0 };
+  }
+
   setOrbit({ target, position, min = 2, max = 60, maxPolar = Math.PI * 0.49, minPolar = 0, fov = 50, pan = true, animate = false }) {
-    this.mode = 'orbit';
+    this.mode = 'orbit'; this.baseFov = fov; this.fovTween = null;
     this.orbit.enabled = true;
     this.orbit.minDistance = min;
     this.orbit.maxDistance = max;
@@ -80,7 +124,7 @@ export class DesktopControls {
   }
 
   setWalk({ position, yaw = 0, pitch = -0.05, eye = 1.65, bounds = null, speed = 2.2, fov = 70 }) {
-    this.mode = 'walk';
+    this.mode = 'walk'; this.baseFov = fov; this.fovTween = null;
     this.orbit.enabled = false;
     Object.assign(this.walk, { yaw, pitch, eye, bounds, speed, target: null });
     this.walk.pos.copy(position);
@@ -89,7 +133,7 @@ export class DesktopControls {
   }
 
   setCockpit({ fov = 68, limits = [1.9, 0.9] } = {}) {
-    this.mode = 'cockpit';
+    this.mode = 'cockpit'; this.baseFov = fov; this.fovTween = null;
     this.orbit.enabled = false;
     this.cockpit.yaw = 0; this.cockpit.pitch = -0.14; this.cockpit.limits = limits;
     this.camera.fov = fov;
@@ -98,14 +142,26 @@ export class DesktopControls {
 
   onDown(e) {
     if (!this.enabled) return;
+    this.touches.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    if (this.touches.size === 2 && this.mode !== 'orbit') { this.pinch = this.pinchDist(); this.pointer.moved = 99; return; }
     const p = this.pointer;
     p.down = true; p.id = e.pointerId; p.x = p.sx = e.clientX; p.y = p.sy = e.clientY; p.moved = 0;
     if (this.mode !== 'orbit') this.dom.setPointerCapture(e.pointerId);
     this.tween = null;
   }
 
+  pinchDist() { const [a, b] = [...this.touches.values()]; return Math.hypot(a.x - b.x, a.y - b.y) || 1; }
+
   onMove(e) {
     const p = this.pointer;
+    if (this.touches.has(e.pointerId)) this.touches.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    if (this.touches.size >= 2 && this.mode !== 'orbit') {
+      if (!this.enabled) return;
+      const d = this.pinchDist();
+      if (this.pinch) this.zoom(this.pinch / d);
+      this.pinch = d; p.moved = 99; p.x = e.clientX; p.y = e.clientY;
+      return;
+    }
     if (!p.down || !this.enabled) { this.hover(e); return; }
     const dx = e.clientX - p.x, dy = e.clientY - p.y;
     p.x = e.clientX; p.y = e.clientY;
@@ -129,6 +185,8 @@ export class DesktopControls {
   }
 
   onUp(e) {
+    this.touches.delete(e.pointerId);
+    if (this.touches.size < 2) this.pinch = null;
     const p = this.pointer;
     if (!p.down) return;
     p.down = false;
@@ -148,6 +206,11 @@ export class DesktopControls {
   }
 
   update(dt) {
+    if (this.fovTween) {
+      const z = this.fovTween; z.t = Math.min(1, z.t + dt / 0.25);
+      this.camera.fov = z.from + (z.to - z.from) * (z.t * (2 - z.t)); this.camera.updateProjectionMatrix();
+      if (z.t >= 1) this.fovTween = null;
+    }
     if (this.tween) {
       const tw = this.tween;
       tw.t = Math.min(1, tw.t + dt / tw.duration);
