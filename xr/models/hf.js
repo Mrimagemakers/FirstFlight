@@ -40,7 +40,7 @@ function personMaterial(src, geo, a) {
   m.roughness = 1; m.metalness = Math.min(src.metalness ?? 0, 0.05);
   m.envMapIntensity = 0.75;
   m.specularIntensity = 0.6;
-  m.sheen = 1; m.sheenRoughness = 0.55; m.sheenColor = new THREE.Color(0.55, 0.55, 0.58);
+  m.sheen = 1; m.sheenRoughness = 0.55; m.sheenColor = new THREE.Color(0.36, 0.36, 0.38);
   geo.computeBoundingBox();
   m.userData.hf = { y0: geo.boundingBox.min.y, h: geo.boundingBox.max.y - geo.boundingBox.min.y, vest: /^ramp/.test(a.key || '') };
   m.onBeforeCompile = (sh) => personShader(sh, m.userData.hf);
@@ -60,20 +60,20 @@ varying float vHfH;
 float hfSkin, hfHair, hfCloth, hfVis, hfTape;`)
     .replace('#include <map_fragment>', `#include <map_fragment>
 {
-  vec3 c = diffuseColor.rgb;
+  vec3 c = pow(max(diffuseColor.rgb, vec3(0.0)), vec3(1.0 / 2.2));   // classify in display (sRGB-like) space
   float L = dot(c, vec3(0.2126, 0.7152, 0.0722));
   float mx = max(c.r, max(c.g, c.b)), mn = min(c.r, min(c.g, c.b));
   float sat = (mx - mn) / max(mx, 1e-4);
   float hue = (c.g - c.b) / max(c.r - c.b, 1e-4);          // 0 = red, 1 = yellow (for r >= g >= b)
-  float warm = step(c.b, c.g) * step(c.g, c.r + 0.004);
-  hfSkin = warm * smoothstep(0.12, 0.24, sat) * (1.0 - smoothstep(0.62, 0.78, sat))
-         * smoothstep(0.12, 0.24, hue) * (1.0 - smoothstep(0.62, 0.78, hue))
-         * smoothstep(0.008, 0.03, L) * (1.0 - smoothstep(0.6, 0.8, L));
-  hfHair = (1.0 - hfSkin) * smoothstep(0.84, 0.9, vHfH) * (1.0 - smoothstep(0.035, 0.07, L)) * (1.0 - smoothstep(0.45, 0.7, sat));
-  hfVis = smoothstep(0.72, 0.86, sat) * smoothstep(0.12, 0.25, L) * step(c.b * 3.0, c.g) * smoothstep(0.3, 0.4, vHfH) * (1.0 - smoothstep(0.8, 0.85, vHfH));
+  float warm = step(c.b, c.g + 0.01) * step(c.g, c.r + 0.01);
+  hfSkin = warm * smoothstep(0.14, 0.26, sat) * (1.0 - smoothstep(0.8, 0.9, sat))
+         * smoothstep(0.2, 0.32, hue) * (1.0 - smoothstep(0.72, 0.84, hue))
+         * smoothstep(0.07, 0.14, L) * (1.0 - smoothstep(0.86, 0.95, L));
+  hfHair = (1.0 - hfSkin) * smoothstep(0.84, 0.9, vHfH) * (1.0 - smoothstep(0.16, 0.26, L)) * (1.0 - smoothstep(0.5, 0.75, sat));
+  hfVis = smoothstep(0.8, 0.9, sat) * smoothstep(0.3, 0.42, L) * smoothstep(0.3, 0.4, vHfH) * (1.0 - smoothstep(0.8, 0.85, vHfH));
   hfTape = 0.0;
 #ifdef HF_VEST
-  hfTape = (1.0 - smoothstep(0.1, 0.2, sat)) * smoothstep(0.22, 0.4, L) * smoothstep(0.4, 0.45, vHfH) * (1.0 - smoothstep(0.78, 0.82, vHfH));
+  hfTape = (1.0 - smoothstep(0.1, 0.18, sat)) * smoothstep(0.5, 0.65, L) * smoothstep(0.4, 0.45, vHfH) * (1.0 - smoothstep(0.78, 0.82, vHfH));
 #endif
   hfCloth = clamp(1.0 - hfSkin - hfHair, 0.0, 1.0);
   // a touch of life in the skin; contact darkening where shoes meet the floor
@@ -91,7 +91,7 @@ metalnessFactor = mix(metalnessFactor, 0.55, hfTape);`)
 #ifdef USE_SHEEN
 material.sheenColor *= hfCloth * (1.0 - hfVis);
 #endif
-material.specularIntensity *= mix(1.0, 0.75, hfCloth);`)
+material.specularColor *= mix(1.0, 0.75, hfCloth);`)
     .replace('#include <emissivemap_fragment>', `#include <emissivemap_fragment>
 totalEmissiveRadiance += hfVis * diffuseColor.rgb * 0.22;`)
     .replace('#include <lights_fragment_end>', `#include <lights_fragment_end>
@@ -279,3 +279,6 @@ export function hfPerson(name, { standIn = null, seed = 1, idle = true, look = t
   }).catch(() => { /* offline and not bundled: keep the stand-in */ });
   return g;
 }
+
+/** For tests: build the person material on any mesh. */
+export const _hfTest = { personMaterial, addIdle };
