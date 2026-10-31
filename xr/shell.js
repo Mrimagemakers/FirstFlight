@@ -2,6 +2,12 @@
 import * as THREE from 'three';
 import { settings, setSetting, resetSettings, QUALITY, VERSION } from './settings.js';
 import { audio } from './audio.js';
+// AR can't run inside a preview frame: there, open the live site instead
+const AR_LINK = (() => {
+  let framed = false; try { framed = window.self !== window.top && !window.top.location.href; } catch { framed = true; }
+  const preview = framed || location.protocol !== 'https:' || /claude|localhost/.test(location.hostname);
+  return preview ? 'href="https://mrimagemakers.github.io/FirstFlight/ar.html" target="_blank" rel="noopener"' : 'href="ar.html" target="_top"';
+})();
 
 const STATIONS = [
   { key: 'hangar', name: 'Systems lab', blurb: 'Reveal the engine, fuel and electrical systems. Find the missing tool.', img: 'lab-hangar', role: 'Maintenance' },
@@ -46,7 +52,7 @@ export class Shell {
         ${this.support.vr ? '<button data-act="vr">Enter VR</button>' : ''}
         <button data-act="settings">Settings</button>
         <button data-act="help">How to play</button>
-        <a href="ar.html" target="_top" data-act="ar">AR aircraft explorer ↗</a>
+        <a ${AR_LINK} data-act="ar">AR aircraft explorer ↗</a>
         <a href="index.html" target="_top" data-act="hub">Careers hub ↗</a>
         <button data-act="about">About</button>
       </nav>
@@ -122,7 +128,7 @@ export class Shell {
       <button data-act="settings">Settings</button>
       <button data-act="help">How to play</button>
       <button data-act="about">About &amp; licenses</button>
-      <a href="ar.html" target="_top">AR aircraft explorer ↗</a>
+      <a ${AR_LINK}>AR aircraft explorer ↗</a>
       <a href="index.html" target="_top">Careers hub ↗</a>
       <button data-act="title">Exit to title</button>
     </nav>`);

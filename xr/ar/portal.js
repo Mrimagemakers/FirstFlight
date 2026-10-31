@@ -8,6 +8,11 @@ import { blobTexture, wrapText } from '../util.js';
 const $ = id => document.getElementById(id);
 const ASSET = new URL('../assets/', import.meta.url).href;
 const embedded = (() => { try { return window.self !== window.top; } catch { return true; } })();
+// can we reach the top window (embedded in our own hub) or is this inside someone else's frame (e.g. a preview)?
+const sameOriginTop = (() => { try { return !!window.top.location.href; } catch { return false; } })();
+// the live site, used when this copy runs somewhere AR can't (a sandboxed preview frame or a local file)
+const PUBLIC = 'https://mrimagemakers.github.io/FirstFlight/';
+const hosted = /^https:/.test(location.protocol) && !/claude|claudeusercontent|localhost|^$/.test(location.hostname);
 if (embedded) document.body.classList.add('embedded');
 
 // ------------------------------------------------------------------ renderer, scene, lighting
@@ -194,6 +199,7 @@ async function load(id) {
   document.querySelectorAll('.mcard').forEach(b => b.classList.toggle('on', b.dataset.id === item.id));
   try { history.replaceState(null, '', '?model=' + item.id); } catch { /* sandboxed */ }
   $('loading').classList.remove('show');
+  if (QUICK) { setArLabel(); setTimeout(() => prepareQuickLook(model), 400); }
 }
 
 function setExplode(v) { explodeTarget = v; $('explode').value = v; }
@@ -254,7 +260,13 @@ function applyArScale() { holder.scale.setScalar(ar.real ? 1 : ar.scale * tablet
 
 async function startAR() {
   const overlay = $('arOverlay');
-  const session = await navigator.xr.requestSession('immersive-ar', { requiredFeatures: ['hit-test'], optionalFeatures: ['dom-overlay', 'local-floor'], domOverlay: { root: overlay } });
+  let session;
+  try {
+    session = await navigator.xr.requestSession('immersive-ar', { requiredFeatures: ['hit-test'], optionalFeatures: ['dom-overlay', 'local-floor'], domOverlay: { root: overlay } });
+  } catch {
+    // some browsers refuse a required feature they only partly support: ask for everything as optional
+    session = await navigator.xr.requestSession('immersive-ar', { optionalFeatures: ['hit-test', 'dom-overlay', 'local-floor'], domOverlay: { root: overlay } });
+  }
   ar.session = session; ar.placed = false; ar.moving = true; ar.scale = 1; ar.real = false;
   overlay.hidden = false;
   renderer.xr.setReferenceSpaceType('local');
@@ -342,15 +354,20 @@ document.querySelectorAll('[data-ar]').forEach(b => (b.onclick = () => {
 }));
 $('arExit').onclick = () => ar.session?.end();
 
-// iPhone / iPad: export the current model as USDZ and open AR Quick Look
-async function quickLook() {
-  $('loading').classList.add('show'); $('loading').querySelector('span').textContent = 'Preparing the AR model…';
-  try {
+// iPhone / iPad: export the current model as USDZ and open AR Quick Look. Safari only opens Quick Look from
+// a link clicked during the tap itself, so the file is prepared in the background as soon as a model loads.
+const QUICK = (() => { const a = document.createElement('a'); return !!a.relList?.supports?.('ar'); })() || /iPhone|iPad|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+const usdz = new Map(); // model id -> Promise<url>
+function buildUSDZ(model) {
+  const id = model.item.id;
+  if (!usdz.has(id)) usdz.set(id, (async () => {
     const { USDZExporter } = await import('three/addons/exporters/USDZExporter.js');
-    const src = current.exportRoot ? current.exportRoot() : current.root;
-    const saved = explodeTarget; current.explode(0);
+    const src = model.exportRoot ? model.exportRoot() : model.root;
+    const live = model === current ? explode : 0;
+    model.explode(0);
     const copy = new THREE.Group();
     const clone = src.clone(true);
+    model.explode(live);
     const drop = [];
     clone.traverse(o => { if (o.isSprite || o.isLine || o.isPoints || (o.isMesh && o.material?.transparent && o.material.depthWrite === false && o.material.map?.image?.width === 128)) drop.push(o); });
     drop.forEach(o => o.parent?.remove(o));
@@ -361,12 +378,36 @@ async function quickLook() {
       o.material = Array.isArray(o.material) ? o.material.map(conv) : conv(o.material);
     });
     copy.add(clone);
-    if (current.size > 4) copy.scale.setScalar(0.6 / current.size * 2); // large aircraft start at tabletop size
-    const data = await new USDZExporter().parseAsync(copy, { quickLookCompatible: true, maxTextureSize: 2048 });
-    current.explode(saved);
-    const url = URL.createObjectURL(new Blob([data], { type: 'model/vnd.usdz+zip' }));
-    const a = document.createElement('a'); a.rel = 'ar'; a.href = url; a.download = current.item.id + '.usdz';
-    const img = document.createElement('img'); a.appendChild(img); document.body.appendChild(a); a.click(); a.remove();
+    if (model.size > 4) copy.scale.setScalar(0.6 / model.size * 2); // large aircraft start at tabletop size
+    const data = await new USDZExporter().parseAsync(copy, { quickLookCompatible: true, maxTextureSize: 1024 });
+    return URL.createObjectURL(new Blob([data], { type: 'model/vnd.usdz+zip' }));
+  })());
+  return usdz.get(id);
+}
+function openQuickLook(url, id) {
+  const a = document.createElement('a'); a.rel = 'ar'; a.href = url; a.download = id + '.usdz';
+  a.appendChild(document.createElement('img')); document.body.appendChild(a); a.click(); a.remove();
+}
+const ready = new Map(); // model id -> url, once built
+async function prepareQuickLook(model) {
+  if (!QUICK || !model) return;
+  try { ready.set(model.item.id, await buildUSDZ(model)); } catch { /* reported on tap */ }
+  if (model === current) setArLabel();
+}
+function setArLabel() {
+  const b = $('arBtn');
+  if (QUICK && current && !ready.has(current.item.id) && !usdz.has(current.item.id)) b.textContent = 'View in AR';
+  else if (QUICK && current && !ready.has(current.item.id)) b.textContent = 'Preparing AR…';
+  else b.textContent = 'View in AR';
+}
+async function quickLook() {
+  const id = current.item.id;
+  if (ready.has(id)) { openQuickLook(ready.get(id), id); return; }
+  // not ready yet: build it, then ask for one more tap so Safari treats the open as a user action
+  $('loading').classList.add('show'); $('loading').querySelector('span').textContent = 'Preparing the AR model…';
+  try {
+    ready.set(id, await buildUSDZ(current));
+    $('arBtn').textContent = 'Tap again to open AR'; $('arBtn').classList.add('pulse');
   } catch (e) { alertHelp('Could not prepare the AR model on this device (' + e.message + ').'); }
   finally { $('loading').classList.remove('show'); $('loading').querySelector('span').textContent = 'Building model…'; }
 }
@@ -376,7 +417,7 @@ function alertHelp(why) {
   const qrEl = $('qr');
   try {
     // global from vendor/qrcode/qrcode.js (loaded on demand)
-    const make = () => { const qr = window.qrcode(0, 'M'); qr.addData(location.href.replace(/^http:\/\/localhost/, location.origin)); qr.make(); qrEl.innerHTML = qr.createSvgTag({ cellSize: 6, margin: 2, scalable: true }); };
+    const make = () => { const qr = window.qrcode(0, 'M'); qr.addData(hosted ? location.href : PUBLIC + 'ar.html' + location.search); qr.make(); qrEl.innerHTML = qr.createSvgTag({ cellSize: 6, margin: 2, scalable: true }); };
     if (window.qrcode) make();
     else { const s = document.createElement('script'); s.src = new URL('../../vendor/qrcode/qrcode.js', import.meta.url).href; s.onload = make; document.head.appendChild(s); }
   } catch { qrEl.hidden = true; }
@@ -385,13 +426,21 @@ function alertHelp(why) {
 $('help').addEventListener('click', e => { if (e.target === $('help') || e.target.closest('[data-close]')) $('help').hidden = true; });
 
 $('arBtn').onclick = async () => {
-  if (embedded) { window.open(location.pathname.replace(/[^/]*$/, 'ar.html') + '?model=' + (current?.item.id || '') + '&ar=1', '_blank'); return; }
-  const quick = document.createElement('a').relList?.supports?.('ar');
+  const q = '?model=' + (current?.item.id || '') + '&ar=1';
+  if (embedded) {
+    // AR can't start inside a frame on most browsers. In our own hub, open this page full-screen in the same
+    // tab; anywhere else (a preview frame), open the live site in a new tab.
+    if (sameOriginTop && hosted) { window.top.location.href = location.pathname.replace(/[^/]*$/, 'ar.html') + q; return; }
+    window.open(PUBLIC + 'ar.html' + q, '_blank', 'noopener'); return;
+  }
+  // iPhone / iPad first: the Quick Look link must open synchronously inside this tap
+  if (QUICK && !navigator.xr) { $('arBtn').classList.remove('pulse'); quickLook(); return; }
   let webxr = false;
   try { webxr = !!navigator.xr && isSecureContext && await navigator.xr.isSessionSupported('immersive-ar'); } catch { /* no */ }
-  if (webxr) { try { await startAR(); } catch (e) { alertHelp('AR could not start: ' + e.message); } return; }
-  if (quick) { quickLook(); return; }
-  alertHelp(/iPhone|iPad/.test(navigator.userAgent) ? 'Open this page in Safari to use AR Quick Look.' : 'This device or browser can’t place 3D models in AR. Scan the code with your phone to open this page there, or keep exploring in 3D here.');
+  if (webxr) { $('arBtn').classList.remove('pulse'); try { await startAR(); } catch (e) { alertHelp('AR could not start (' + (e.message || e.name) + '). Check that the browser has camera permission for this site, then try again.'); } return; }
+  if (QUICK) { quickLook(); return; }
+  if (!hosted) { alertHelp('AR needs the live site. Scan the code with your phone, or open ' + PUBLIC + 'ar.html'); return; }
+  alertHelp(/iPhone|iPad/.test(navigator.userAgent) ? 'Open this page in Safari to use AR Quick Look.' : /Android/.test(navigator.userAgent) ? 'Open this page in Google Chrome and make sure Google Play Services for AR is installed and up to date.' : 'This device or browser can’t place 3D models in AR. Scan the code with your phone to open this page there, or keep exploring in 3D here.');
 };
 
 // ------------------------------------------------------------------ loop
@@ -417,4 +466,4 @@ const params = new URLSearchParams(location.search);
 await load(params.get('model') || location.hash.slice(1) || 'trainer');
 resize();
 if (params.get('ar') === '1') $('arBtn').classList.add('pulse');
-window.ffAR = { load, select, setExplode, setLabels(v) { showLabels = v; tog($('labelsBtn'), v); }, CATALOG, get current() { return current; }, renderer, camera, controls, scene };
+window.ffAR = { load, select, setExplode, buildUSDZ, setLabels(v) { showLabels = v; tog($('labelsBtn'), v); }, CATALOG, get current() { return current; }, renderer, camera, controls, scene };
