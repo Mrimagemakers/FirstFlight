@@ -138,7 +138,7 @@ export class RampStation {
     const people = [
       worker(lab, { seed: 2 }), worker(lab, { seed: 5, vest: 'orange' }), worker(lab, { seed: 8 }), worker(lab, { seed: 13, vest: 'orange' }),
     ];
-    people[0].position.set(3.4, 1.0, -10.5); people[0].rotation.y = -Math.PI / 2; // on the belt loader platform
+    people[0].position.set(loader.position.x + 3.25, 0, loader.position.z + 1.15); people[0].rotation.y = -1.86; // on the ground at the foot of the belt loader, feeding bags
     people[1].position.set(12.9, 0, -17.6); people[1].rotation.y = -0.6; // lead
     people[2].position.set(1.6, 0, -17.6); people[2].rotation.y = 2.5; // headset at the nose
     people[3].position.set(13.2, 0, -10.2); people[3].rotation.y = Math.PI / 2;
