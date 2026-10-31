@@ -40,7 +40,7 @@ function personMaterial(src, geo, a) {
   m.roughness = 1; m.metalness = Math.min(src.metalness ?? 0, 0.05);
   m.envMapIntensity = 0.75;
   m.specularIntensity = 0.6;
-  m.sheen = 1; m.sheenRoughness = 0.55; m.sheenColor = new THREE.Color(0.36, 0.36, 0.38);
+  m.sheen = 1; m.sheenRoughness = 0.7; m.sheenColor = new THREE.Color(0.22, 0.22, 0.24);
   geo.computeBoundingBox();
   m.userData.hf = { y0: geo.boundingBox.min.y, h: geo.boundingBox.max.y - geo.boundingBox.min.y, vest: /^ramp/.test(a.key || '') };
   m.onBeforeCompile = (sh) => personShader(sh, m.userData.hf);
