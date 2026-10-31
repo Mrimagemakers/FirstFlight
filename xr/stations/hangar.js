@@ -6,6 +6,7 @@ import { materials } from '../materials.js';
 import { buildTrainer } from '../models/trainer.js';
 import { quality } from '../settings.js';
 import { addPlanarReflection } from '../reflect.js';
+import { hfPerson } from '../models/hf.js';
 
 const COMPONENTS = {
   airframe: { label: 'Airframe & flight controls', tag: 'Airframe & controls', title: 'Follow the control paths', text: 'Watch the ailerons, elevator and rudder move. Ailerons move differentially to roll the airplane, the elevator changes pitch and the rudder influences yaw. Cables (gold and steel) show the idea of a mechanical link from the cabin; real rigging, tension and travel limits come from approved maintenance data.', focus: [0, 1.6, 1.2], cam: [7.5, 4.2, 8.5] },
@@ -181,6 +182,13 @@ export class HangarStation {
     this.trainer.root.position.set(0, 0, 0);
     this.trainer.setLivery(localStorage.getItem('ff-livery') || 'navy');
     root.add(this.trainer.root);
+
+    // a technician working at the engine (photoreal Higgsfield model on Medium quality and up)
+    if (quality().realPeople) {
+      const tech = this.technician = hfPerson('technician', { seed: 3 });
+      tech.position.set(2.15, 0, -2.0); tech.rotation.y = -1.95;
+      props.add(tech);
+    }
 
     // missing tool for the tool-control exercise (left under the cowling)
     const torque = this.lostTool = new THREE.Group();

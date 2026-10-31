@@ -3,6 +3,8 @@ import * as THREE from 'three';
 import { mesh, box, cyl, rod, sphere, roundedBox, canvasTexture, rand } from '../util.js';
 import { materials } from '../materials.js';
 import { runScenario } from '../scenario.js';
+import { quality } from '../settings.js';
+import { hfPerson } from '../models/hf.js';
 
 const R = 1.88, CY = 1.02;           // cabin shell radius and centre height above the floor
 const PITCH = 0.79, FIRST_ROW = 1.55, ROWS = 24, EXIT_ROWS = [10, 11];
@@ -141,6 +143,12 @@ export class CabinStation {
     const bottle = new THREE.Group(); bottle.position.set(-0.08, 1.04, 0.55); galley.add(bottle);
     cyl(bottle, 0.045, 0.05, 0.2, [0, 0.1, 0], new THREE.MeshPhysicalMaterial({ color: 0xbfe6f2, roughness: 0.15, transparent: true, opacity: 0.75 }), null, 16);
     box(bottle, [0.04, 0.06, 0.08], [0, 0.23, 0.02], new THREE.MeshStandardMaterial({ color: 0xe9e9e9, roughness: 0.4 }));
+    // a flight attendant greeting at the R1 door (photoreal Higgsfield model on Medium quality and up)
+    if (quality().realPeople) {
+      const fa = this.attendant = hfPerson('attendant', { seed: 7 });
+      fa.position.set(0.82, 0, Z0 + 2.85); fa.rotation.y = Math.PI + 0.55;
+      root.add(fa);
+    }
     // equipment: extinguisher, PED kit, first aid, O2, flashlight
     const ext = new THREE.Group(); ext.position.set(-1.18, 1.0, Z0 + 1.15); root.add(ext);
     cyl(ext, 0.06, 0.06, 0.34, [0, 0.17, 0], M.red, null, 18); sphere(ext, [0.06, 0.04, 0.06], [0, 0.34, 0], M.red, 14); box(ext, [0.03, 0.05, 0.1], [0, 0.38, 0.03], M.darkMetal);

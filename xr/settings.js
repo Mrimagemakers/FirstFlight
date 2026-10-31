@@ -16,10 +16,10 @@ const DEFAULTS = {
 // xrScale/xrFoveation: VR headset resolution and edge sharpness. water: 'reflect' = real-time reflections.
 // terrainHQ: tri-planar rock and detail shading. treeShadows/clouds/trees/terrainSeg: world density.
 export const QUALITY = {
-  low: { label: 'Low', pixelRatio: 1, shadow: 1024, post: false, ao: false, trees: 0.45, terrainSeg: 200, smaa: false, msaa: 0, anisotropy: 4, xrScale: 1, xrFoveation: 1, water: 'standard', terrainHQ: false, treeShadows: false, clouds: 0.7, aoSamples: 8 },
-  medium: { label: 'Medium', pixelRatio: 1.25, shadow: 2048, post: true, ao: false, trees: 0.7, terrainSeg: 260, smaa: true, msaa: 0, anisotropy: 8, xrScale: 1.1, xrFoveation: 0.6, water: 'standard', terrainHQ: false, treeShadows: false, clouds: 0.85, aoSamples: 12 },
-  high: { label: 'High', pixelRatio: 1.75, shadow: 4096, post: true, ao: true, trees: 1, terrainSeg: 360, smaa: true, msaa: 0, anisotropy: 12, xrScale: 1.25, xrFoveation: 0.35, water: 'standard', terrainHQ: true, treeShadows: false, clouds: 1, aoSamples: 16 },
-  ultra: { label: 'Ultra (powerful graphics card)', pixelRatio: 2, shadow: 4096, post: true, ao: true, trees: 1.6, terrainSeg: 512, smaa: false, msaa: 4, anisotropy: 16, xrScale: 1.5, xrFoveation: 0.1, water: 'reflect', terrainHQ: true, treeShadows: true, clouds: 1.5, aoSamples: 24, reflections: true },
+  low: { label: 'Low', pixelRatio: 1, shadow: 1024, post: false, ao: false, trees: 0.45, terrainSeg: 200, smaa: false, msaa: 0, anisotropy: 4, xrScale: 1, xrFoveation: 1, water: 'standard', terrainHQ: false, treeShadows: false, clouds: 0.7, aoSamples: 8, realPeople: false },
+  medium: { label: 'Medium', pixelRatio: 1.25, shadow: 2048, post: true, ao: false, trees: 0.7, terrainSeg: 260, smaa: true, msaa: 0, anisotropy: 8, xrScale: 1.1, xrFoveation: 0.6, water: 'standard', terrainHQ: false, treeShadows: false, clouds: 0.85, aoSamples: 12, realPeople: true },
+  high: { label: 'High', pixelRatio: 1.75, shadow: 4096, post: true, ao: true, trees: 1, terrainSeg: 360, smaa: true, msaa: 0, anisotropy: 12, xrScale: 1.25, xrFoveation: 0.35, water: 'standard', terrainHQ: true, treeShadows: false, clouds: 1, aoSamples: 16, realPeople: true },
+  ultra: { label: 'Ultra (powerful graphics card)', pixelRatio: 2, shadow: 4096, post: true, ao: true, trees: 1.6, terrainSeg: 512, smaa: false, msaa: 4, anisotropy: 16, xrScale: 1.5, xrFoveation: 0.1, water: 'reflect', terrainHQ: true, treeShadows: true, clouds: 1.5, aoSamples: 24, reflections: true, realPeople: true },
 };
 
 /** Best starting quality for this device: Ultra on recognised high-end desktop graphics cards. */

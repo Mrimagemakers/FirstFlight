@@ -2,6 +2,8 @@
 import * as THREE from 'three';
 import { mesh, box, cyl, rod, tube, sphere, roundedBox, canvasTexture, contactShadow, rand, lathe } from '../util.js';
 import { materials } from '../materials.js';
+import { quality } from '../settings.js';
+import { loadHF, addIdle } from './hf.js';
 
 const gseYellow = () => new THREE.MeshPhysicalMaterial({ color: 0xe3b11b, roughness: 0.48, metalness: 0.15, clearcoat: 0.5 });
 const gseWhite = () => new THREE.MeshPhysicalMaterial({ color: 0xe7e9e8, roughness: 0.45, metalness: 0.1, clearcoat: 0.4 });
@@ -171,7 +173,7 @@ export function chock(lab) {
 }
 
 /** Simple ramp worker with hi-vis vest and ear defenders. Pose: 'stand' | 'wands' */
-export function worker(lab, { pose = 'stand', vest = 'yellow', seed = 1 } = {}) {
+export function worker(lab, { pose = 'stand', vest = 'yellow', seed = 1, real = true } = {}) {
   const M = materials(lab);
   const r = rand(seed);
   const g = new THREE.Group(); g.name = 'worker';
@@ -201,7 +203,15 @@ export function worker(lab, { pose = 'stand', vest = 'yellow', seed = 1 } = {}) 
   const wands = pose === 'wands';
   const L = arm(-0.24, wands), R = arm(0.24, wands);
   if (wands) for (const a of [L, R]) { const w = cyl(a, 0.025, 0.025, 0.4, [0, -0.78, 0], new THREE.MeshStandardMaterial({ color: 0xff5a1a, emissive: 0xff4400, emissiveIntensity: 0.8 }), null, 8); w.castShadow = false; }
+  const procedural = [...g.children];
   contactShadow(g, 0.8, 0.8, [0, 0, 0], 0.5);
+  // photoreal Higgsfield model replaces the stand-in once it has loaded (Medium quality and up)
+  if (real && pose === 'stand' && quality().realPeople) {
+    loadHF(vest === 'orange' ? 'rampOrange' : 'rampYellow').then(p => {
+      procedural.forEach(o => (o.visible = false));
+      g.add(p); addIdle(p, seed);
+    }).catch(() => { /* keep the stand-in */ });
+  }
   return g;
 }
 
