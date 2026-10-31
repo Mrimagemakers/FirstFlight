@@ -216,6 +216,7 @@ export class Shell {
         <li>WebXR controller models: WebXR Input Profiles (MIT License).</li>
         <li>Sky lighting: HDR images from <a href="https://polyhaven.com" target="_blank" rel="noopener">Poly Haven</a> (CC0).</li>
         <li>Textures, aircraft, vehicles, scenery, sounds and interface: original work for First Flight.</li>
+        <li>Photoreal people and 3D models: generated for First Flight with Higgsfield AI.</li>
         <li>All aircraft, airlines and liveries are fictional.</li>
       </ul>
       <p><a href="privacy.html" target="_blank" rel="noopener">Privacy policy</a> · <a href="terms.html" target="_blank" rel="noopener">Terms of use</a></p>
