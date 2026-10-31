@@ -26,6 +26,87 @@ export const HF = {
   attendant:   { file: 'fa19e26e-d838-4cda-bf29-6d21c05c3a13.glb', fit: ['height', 1.7], yaw: FACE_Z, person: true },
 };
 
+// ------------------------------------------------------------------ realistic skin, hair and cloth
+// A generated person is one mesh with one texture, so the shader tells the materials apart by colour and
+// height: skin gets a soft, slightly glossy finish with warm light scattering under the surface, hair gets
+// a tight sheen, fabric gets velvety edges and full matte, and hi-vis vests glow fluorescent with
+// silvery retroreflective tape.
+
+function personMaterial(src, geo, a) {
+  const m = new THREE.MeshPhysicalMaterial();
+  for (const k of ['map', 'normalMap', 'roughnessMap', 'metalnessMap', 'aoMap', 'emissiveMap', 'name']) if (src[k] !== undefined) m[k] = src[k];
+  m.color.copy(src.color); m.emissive.copy(src.emissive);
+  if (src.normalMap) m.normalScale.set(1.35, 1.35);
+  m.roughness = 1; m.metalness = Math.min(src.metalness ?? 0, 0.05);
+  m.envMapIntensity = 0.75;
+  m.specularIntensity = 0.6;
+  m.sheen = 1; m.sheenRoughness = 0.55; m.sheenColor = new THREE.Color(0.55, 0.55, 0.58);
+  geo.computeBoundingBox();
+  m.userData.hf = { y0: geo.boundingBox.min.y, h: geo.boundingBox.max.y - geo.boundingBox.min.y, vest: /^ramp/.test(a.key || '') };
+  m.onBeforeCompile = (sh) => personShader(sh, m.userData.hf);
+  m.customProgramCacheKey = () => 'hf-person' + (m.userData.hf.vest ? '-vest' : '');
+  src.dispose();
+  return m;
+}
+
+function personShader(sh, info) {
+  sh.uniforms.uHfY = { value: new THREE.Vector2(info.y0, info.h) };
+  sh.vertexShader = sh.vertexShader
+    .replace('#include <common>', '#include <common>\nuniform vec2 uHfY; varying float vHfH;')
+    .replace('#include <begin_vertex>', '#include <begin_vertex>\nvHfH = (position.y - uHfY.x) / uHfY.y;');
+  sh.fragmentShader = sh.fragmentShader
+    .replace('#include <common>', `#include <common>
+varying float vHfH;
+float hfSkin, hfHair, hfCloth, hfVis, hfTape;`)
+    .replace('#include <map_fragment>', `#include <map_fragment>
+{
+  vec3 c = diffuseColor.rgb;
+  float L = dot(c, vec3(0.2126, 0.7152, 0.0722));
+  float mx = max(c.r, max(c.g, c.b)), mn = min(c.r, min(c.g, c.b));
+  float sat = (mx - mn) / max(mx, 1e-4);
+  float hue = (c.g - c.b) / max(c.r - c.b, 1e-4);          // 0 = red, 1 = yellow (for r >= g >= b)
+  float warm = step(c.b, c.g) * step(c.g, c.r + 0.004);
+  hfSkin = warm * smoothstep(0.12, 0.24, sat) * (1.0 - smoothstep(0.62, 0.78, sat))
+         * smoothstep(0.12, 0.24, hue) * (1.0 - smoothstep(0.62, 0.78, hue))
+         * smoothstep(0.008, 0.03, L) * (1.0 - smoothstep(0.6, 0.8, L));
+  hfHair = (1.0 - hfSkin) * smoothstep(0.84, 0.9, vHfH) * (1.0 - smoothstep(0.035, 0.07, L)) * (1.0 - smoothstep(0.45, 0.7, sat));
+  hfVis = smoothstep(0.72, 0.86, sat) * smoothstep(0.12, 0.25, L) * step(c.b * 3.0, c.g) * smoothstep(0.3, 0.4, vHfH) * (1.0 - smoothstep(0.8, 0.85, vHfH));
+  hfTape = 0.0;
+#ifdef HF_VEST
+  hfTape = (1.0 - smoothstep(0.1, 0.2, sat)) * smoothstep(0.22, 0.4, L) * smoothstep(0.4, 0.45, vHfH) * (1.0 - smoothstep(0.78, 0.82, vHfH));
+#endif
+  hfCloth = clamp(1.0 - hfSkin - hfHair, 0.0, 1.0);
+  // a touch of life in the skin; contact darkening where shoes meet the floor
+  diffuseColor.rgb *= mix(vec3(1.0), vec3(1.04, 0.985, 0.965), hfSkin);
+  diffuseColor.rgb *= mix(0.72, 1.0, smoothstep(0.0, 0.025, vHfH));
+}`)
+    .replace('#include <roughnessmap_fragment>', `#include <roughnessmap_fragment>
+roughnessFactor = mix(roughnessFactor, 0.93, hfCloth);
+roughnessFactor = mix(roughnessFactor, 0.5, hfSkin);
+roughnessFactor = mix(roughnessFactor, 0.36, hfHair);
+roughnessFactor = mix(roughnessFactor, 0.32, hfTape);`)
+    .replace('#include <metalnessmap_fragment>', `#include <metalnessmap_fragment>
+metalnessFactor = mix(metalnessFactor, 0.55, hfTape);`)
+    .replace('#include <lights_physical_fragment>', `#include <lights_physical_fragment>
+#ifdef USE_SHEEN
+material.sheenColor *= hfCloth * (1.0 - hfVis);
+#endif
+material.specularIntensity *= mix(1.0, 0.75, hfCloth);`)
+    .replace('#include <emissivemap_fragment>', `#include <emissivemap_fragment>
+totalEmissiveRadiance += hfVis * diffuseColor.rgb * 0.22;`)
+    .replace('#include <lights_fragment_end>', `#include <lights_fragment_end>
+{
+  // subsurface scattering, approximated: light diffuses under the skin and comes back out redder,
+  // filling the shadow side and the terminator instead of falling straight to black
+  vec3 lit = reflectedLight.directDiffuse + reflectedLight.indirectDiffuse;
+  float lum = dot(lit, vec3(0.2126, 0.7152, 0.0722));
+  vec3 scatter = diffuseColor.rgb * vec3(0.95, 0.38, 0.26) * (lum * 0.22 + dot(reflectedLight.indirectDiffuse, vec3(0.333)) * 0.35);
+  reflectedLight.indirectDiffuse += hfSkin * scatter;
+  reflectedLight.directDiffuse *= mix(1.0, 0.92, hfSkin);
+}`);
+  if (info.vest) sh.defines = { ...(sh.defines || {}), HF_VEST: '' };
+}
+
 let loader = null;
 const scenes = new Map();
 
@@ -36,7 +117,7 @@ function fetchScene(name) {
       loader ||= new GLTFLoader().setMeshoptDecoder(MeshoptDecoder);
       loader.setCrossOrigin('anonymous');
       const urls = [LOCAL + name + '.glb', CDN + a.file];
-      const next = (i) => loader.load(urls[i], g => resolve(normalise(g.scene, a)), undefined, err => (i + 1 < urls.length ? next(i + 1) : reject(err)));
+      const next = (i) => loader.load(urls[i], g => resolve(normalise(g.scene, { ...a, key: name })), undefined, err => (i + 1 < urls.length ? next(i + 1) : reject(err)));
       next(0);
     }));
   }
@@ -58,19 +139,10 @@ function normalise(scene, a) {
   scene.traverse(o => {
     if (!o.isMesh) return;
     o.castShadow = true; o.receiveShadow = true;
-    const m = o.material;
-    if (!m) return;
-    if (m.map) m.map.anisotropy = 8;
-    if (a.person) {
-      // generated maps read glossy and slightly flat for skin and cloth: soften the sheen, deepen the creases
-      m.envMapIntensity = 0.7;
-      m.roughness = Math.max(m.roughness ?? 1, 0.82);
-      m.metalness = Math.min(m.metalness ?? 0, 0.05);
-      if (m.normalMap) m.normalScale.set(1.25, 1.25);
-      if ('sheen' in m) { m.sheen = 0.35; m.sheenRoughness = 0.8; m.sheenColor = new THREE.Color(0x3a3f4a); }
-    } else {
-      m.envMapIntensity = 1;
-    }
+    if (!o.material) return;
+    if (o.material.map) o.material.map.anisotropy = 8;
+    if (a.person) o.material = personMaterial(o.material, o.geometry, a);
+    else o.material.envMapIntensity = 1;
   });
   const wrap = new THREE.Group();
   wrap.add(scene);
@@ -122,7 +194,9 @@ function makeLiving(mesh) {
   const rig = headRig(mesh.geometry);
   const mat = mesh.material.clone();           // per-person uniforms
   const u = { uYaw: { value: 0 }, uPitch: { value: 0 }, uPivot: { value: rig.pivot }, uBand: { value: rig.band }, uRad: { value: rig.rad } };
+  const info = mesh.material.userData.hf;
   mat.onBeforeCompile = (sh) => {
+    if (info) personShader(sh, info);
     Object.assign(sh.uniforms, u);
     sh.vertexShader = sh.vertexShader
       .replace('#include <common>', `#include <common>
@@ -140,7 +214,7 @@ objectNormal = hfR * objectNormal;`)
       .replace('#include <begin_vertex>', `#include <begin_vertex>
 transformed = uPivot + hfR * (transformed - uPivot);`);
   };
-  mat.customProgramCacheKey = () => 'hf-living';
+  mat.customProgramCacheKey = () => 'hf-living' + (info && info.vest ? '-vest' : info ? '-person' : '');
   mesh.material = mat;
   return u;
 }
