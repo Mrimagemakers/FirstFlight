@@ -87,7 +87,7 @@
 <div class="section-head"><h2>Three ways to learn</h2><span class="eyebrow muted">EXPLORE · PREPARE · PRACTICE</span></div>
 <div class="pillars">
   <article class="card image-card">${img('ramp-agent', 'A ramp service view with a belt loader at an open cargo door')}<div class="image-card-body"><span class="num">01 / CAREERS & NEW HIRES</span><h3>Plan your aviation career</h3><p>Six entry-level roles, nine experienced paths, a 90-day new-hire plan, a Day-1 agenda, practical tools and a full aviation maintenance center.</p><button class="text-btn" onclick="go('hub')">Open the hub →</button> <button class="text-btn" onclick="go('mx')">Maintenance center →</button></div></article>
-  <article class="card image-card">${img('lab-flight', 'A training airplane flying over an alpine valley in the First Flight 3D lab')}<div class="image-card-body"><span class="num">02 / XR TRAINING LAB</span><h3>Practice in 3D and VR</h3><p>Walk the ramp and collect FOD, find cabin safety equipment, explore aircraft systems, and fly six realistic regions.</p><button class="text-btn" onclick="go('sim')">Enter the lab →</button></div></article>
+  <article class="card image-card">${img('lab-flight', 'A training airplane flying over an alpine valley in the First Flight 3D lab')}<div class="image-card-body"><span class="num">02 / XR TRAINING LAB</span><h3>Practice in 3D and VR</h3><p>Walk the ramp and collect FOD, find cabin safety equipment, explore aircraft systems, and fly eleven locations in five aircraft, with ring races and landing challenges.</p><button class="text-btn" onclick="go('sim')">Enter the lab →</button></div></article>
   <article class="card image-card">${img('cockpit', 'The instrument panel of a training airplane cockpit')}<div class="image-card-body"><span class="num">03 / PILOT ACADEMY</span><h3>Keep your pilot dream flying</h3><p>Ground-school chapters, courses, flashcards, sample tests and an aviation encyclopedia for future pilots.</p><button class="text-btn" onclick="go('learn')">Open the academy →</button></div></article>
 </div>`;
   };
@@ -321,7 +321,7 @@ ${k === 'mxlog' ? `<div class="note"><strong>Why this log matters</strong><p>${e
     ['walkaround', 'Preflight walkaround', 'Eight learning stations around a training airplane.', 'lab-walkaround'],
     ['ramp', 'Ramp & cargo safety', 'Walk Stand 7, pick up FOD, see danger zones and solve six scenarios.', 'ramp-agent'],
     ['cabin', 'Cabin safety & appearance', 'Clear the cabin, locate safety equipment and handle cabin scenarios.', 'cabin-cleaner'],
-    ['flight', 'Fly', 'Four missions over six realistic regions from a detailed cockpit.', 'lab-flight'],
+    ['flight', 'Fly & Sky Challenge', 'Training missions, ring races, star hunts and landing challenges in 5 aircraft over 11 locations.', 'lab-flight'],
   ];
   function labProgress() {
     const p = xr();

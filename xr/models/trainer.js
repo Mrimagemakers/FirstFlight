@@ -257,7 +257,7 @@ export function buildTrainer(lab, { livery = 'navy', interior = true } = {}) {
       Object.entries(systems).forEach(([k, g]) => g.traverse(o => { if (o.isMesh && o.material.emissive && !o.userData.baseEmissive) o.userData.baseEmissive = o.material.emissive.clone(); }));
     },
     setLivery(name) {
-      const map = { navy: [0x163a57, 0xf2f1ec], crimson: [0x7c2430, 0xeef0ef], alloy: [0x2c3a44, 0xa9b0b4] };
+      const map = { navy: [0x163a57, 0xf2f1ec], crimson: [0x7c2430, 0xeef0ef], alloy: [0x2c3a44, 0xa9b0b4], display: [0xc81e2a, 0xf4f1e8], bush: [0x2f5a3a, 0xe9dcb6] };
       const [accent, base] = map[name] || map.navy;
       M.navy.color.set(accent);
       enamelMats.forEach(m => { m.color.set(name === 'alloy' ? 0xb7bec2 : 0xffffff); m.metalness = name === 'alloy' ? 0.7 : 0.05; m.roughness = name === 'alloy' ? 0.34 : 0.3; });

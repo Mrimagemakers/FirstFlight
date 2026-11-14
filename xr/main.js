@@ -72,7 +72,7 @@ async function boot() {
     { key: 'walkaround', num: '02', short: 'Walkaround', title: 'Preflight walkaround', blurb: 'Eight checks around the airplane' },
     { key: 'ramp', num: '03', short: 'Ramp & cargo', title: 'Ramp, cargo and FOD safety', blurb: 'Find FOD, danger zones and scenarios' },
     { key: 'cabin', num: '04', short: 'Cabin', title: 'Cabin safety and appearance', blurb: 'Safety equipment and cabin checks' },
-    { key: 'flight', num: '05', short: 'Fly', title: 'Flight practice', blurb: 'Four missions over six regions' },
+    { key: 'flight', num: '05', short: 'Fly', title: 'Flight practice & Sky Challenge', blurb: 'Missions, races and landings in 5 aircraft over 11 locations' },
   ]);
 
   // ----------------------------------------------------------- XR buttons

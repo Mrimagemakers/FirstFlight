@@ -23,7 +23,8 @@ First Flight puts you on the ramp, in the cabin, in the maintenance hangar and i
 - **Cabin safety & appearance.** Clear the cabin before boarding, find the fire extinguisher, the PED fire containment kit, oxygen and the exits, and handle real cabin situations such as an overheating phone or an unlabeled cleaning product.
 - **Aircraft systems lab.** Reveal the engine, fuel and electrical systems of a training airplane, explode it into parts, watch the controls move, and complete a tool-control check like a maintenance technician.
 - **Preflight walkaround.** Eight learning stations around a training airplane.
-- **Fly.** Take the controls in a detailed cockpit with working instruments. Fly four missions over six realistic regions: Alpine Lakes, Pacific Coast, Red Rock Canyon, Emerald Islands, Northern Highlands and Blue Hour Valley.
+- **Fly.** Take the controls in a detailed cockpit with working instruments. Fly four training missions over eleven locations: Alpine Lakes, Pacific Coast, Red Rock Canyon, Emerald Islands, Northern Highlands, Blue Hour Valley, Golden Dunes, Volcano Bay, Glacier Fjords, Harbor City and City Lights at night.
+- **Sky Challenge.** A flying game on the training routes: ring races against the clock with gold, silver and bronze medals, a three-minute star hunt and a scored landing challenge. Fly a trainer, an aerobatic plane with display smoke, a bush plane, a business jet or an airliner. A guide arrow and light beams lead the way, and VR controllers rumble on every ring.
 
 **Built for VR and for every screen**
 Play seated or standing in a Meta Quest headset with teleport, snap turning and smooth movement, a menu that rides on your hand and hand-tracking support. Floating lesson panels go wherever you need them. The same experience runs on desktop, laptop, tablet and phone with mouse, touch, or an Xbox or PlayStation controller, and on phones in a Google Cardboard–style viewer.

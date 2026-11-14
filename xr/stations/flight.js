@@ -6,6 +6,7 @@ import { buildTrainer, TRAINER_GROUND } from '../models/trainer.js';
 import { quality } from '../settings.js';
 import { Water } from 'three/addons/objects/Water.js';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
+import { SkyGame, AIRCRAFT, EXTRA_REGIONS, extraHeight, CITY, COURSES, MODES } from './flightgame.js';
 
 const FT = 0.3048;
 const $ = id => document.getElementById(id);
@@ -18,6 +19,8 @@ export const REGIONS = {
   highlands: { dry: 0.32, fields: 0.25, name: 'Northern Highlands', env: 'blouberg_sunrise', az: 140, el: 22, turb: 6, ray: 2.2, exposure: 0.6, fog: ['#a9b6bf', 0.00008], grass: [0.95, 0.86, 0.62], rock: [0.86, 0.86, 0.88], sand: [0.52, 0.44, 0.34], snow: 99999, height: 1200, water: -12, waterColor: 0x34525e, trees: 0.3, clouds: 0.85, cloudBase: 1200, sunColor: 0xffe2c4 },
   twilight: { name: 'Blue Hour Valley', env: 'venice_sunset', az: 250, el: 3.5, turb: 8, ray: 3, exposure: 0.62, fog: ['#6f7f99', 0.00006], grass: [0.8, 0.88, 0.8], rock: [0.88, 0.9, 1.0], sand: [0.6, 0.55, 0.5], snow: 1750, height: 2000, water: -18, waterColor: 0x2b3d5c, trees: 0.9, clouds: 0.35, cloudBase: 2100, sunColor: 0xffb27a },
 };
+
+Object.assign(REGIONS, EXTRA_REGIONS);
 
 const MISSIONS = [
   { id: 0, title: 'Straight & level', brief: 'Hold 2,000 ft ±100 ft, heading 090° ±10°, and wings level (bank within 5°) for 15 seconds.' },
@@ -43,7 +46,10 @@ export class FlightStation {
     const c = REGIONS[key];
     const n = noise2(x * 0.0006, z * 0.0006), detail = noise2(x * 0.003, z * 0.003) * 55;
     let h;
-    if (key === 'islands') {
+    const ex = EXTRA_REGIONS[key] ? extraHeight(key, x, z, n, detail, c) : null;
+    if (ex !== null) {
+      h = ex;
+    } else if (key === 'islands') {
       h = (Math.sin(x * 0.0007) * Math.cos(z * 0.00057) + n * 0.6 - 0.45) * c.height;
       const isle = Math.max(0, 1 - Math.hypot(x / 900, (z + 1800) / 1500)); // the airport island
       h = Math.max(h, isle * 60 - 8);
@@ -164,6 +170,28 @@ float fHash(vec2 p){ return fract(sin(dot(p, vec2(41.3, 289.1))) * 43758.5453); 
     this.houses = new THREE.InstancedMesh(houseGeo, new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.85 }), 900);
     this.roofs = new THREE.InstancedMesh(roofGeo, new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.75 }), 900);
     root.add(this.houses, this.roofs);
+    // city towers (Harbor City / City Lights): glass and concrete with a window grid that lights up at night
+    const towerGeo = new THREE.BoxGeometry(1, 1, 1); towerGeo.translate(0, 0.5, 0);
+    const towerMat = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.32, metalness: 0.55 });
+    this.towerU = { night: { value: 0 } };
+    towerMat.onBeforeCompile = (sh) => {
+      sh.uniforms.night = this.towerU.night;
+      sh.vertexShader = sh.vertexShader.replace('#include <common>', '#include <common>\nvarying vec3 vTW; varying vec3 vTN;')
+        .replace('#include <worldpos_vertex>', '#include <worldpos_vertex>\nvTW = (modelMatrix * instanceMatrix * vec4(transformed, 1.0)).xyz; vTN = normalize(mat3(modelMatrix * instanceMatrix) * objectNormal);');
+      sh.fragmentShader = sh.fragmentShader.replace('#include <common>', '#include <common>\nvarying vec3 vTW; varying vec3 vTN; uniform float night;\nfloat tHash(vec3 p){ return fract(sin(dot(p, vec3(12.9898, 78.233, 37.719))) * 43758.5453); }')
+        .replace('#include <map_fragment>', `#include <map_fragment>
+  float side = 1.0 - step(0.9, abs(vTN.y));
+  vec2 wc = vec2((abs(vTN.x) > 0.5 ? vTW.z : vTW.x) / 3.2, vTW.y / 3.6);
+  vec2 wf = fract(wc);
+  float win = step(0.18, wf.x) * step(wf.x, 0.82) * step(0.22, wf.y) * step(wf.y, 0.8) * side * step(4.0, vTW.y);
+  diffuseColor.rgb *= mix(vec3(1.0), vec3(0.32, 0.42, 0.5), win * 0.8);
+  float lit = step(0.42, tHash(floor(vec3(wc, vTW.x * 0.01 + vTW.z * 0.013)))) * win;`)
+        .replace('#include <emissivemap_fragment>', '#include <emissivemap_fragment>\n  totalEmissiveRadiance += vec3(1.0, 0.78, 0.48) * lit * night * 2.2;')
+        .replace('#include <roughnessmap_fragment>', '#include <roughnessmap_fragment>\n  roughnessFactor = mix(roughnessFactor, 0.08, win);');
+    };
+    this.towers = new THREE.InstancedMesh(towerGeo, towerMat, 420);
+    this.towers.castShadow = false; this.towers.receiveShadow = true;
+    root.add(this.towers);
 
     // -------------------------------------------------------------- airport: runway, taxiway, apron, hangars, windsock
     const ap = new THREE.Group(); ap.position.y = 4; root.add(ap); this.airport = ap;
@@ -196,6 +224,16 @@ float fHash(vec2 p){ return fract(sin(dot(p, vec2(41.3, 289.1))) * 43758.5453); 
       const roof = mesh(new THREE.CylinderGeometry(20, 20, 40, 24, 1, false, -0.55, 1.1), new THREE.MeshStandardMaterial({ color: 0x8b969b, metalness: 0.6, roughness: 0.4 }), h);
       roof.rotation.x = Math.PI / 2; roof.position.y = 11 - 20 * Math.cos(0.55) + 0.1;
       box(h, [26, 9, 0.3], [-16.1, 4.5, 0], new THREE.MeshStandardMaterial({ color: 0x2b4458, metalness: 0.5, roughness: 0.45 })).rotation.y = Math.PI / 2;
+    }
+    // runway edge lights (bright at night, small by day)
+    {
+      const lg = new THREE.SphereGeometry(0.35, 8, 6), n = 2 * 26;
+      this.rwyLights = new THREE.InstancedMesh(lg, new THREE.MeshBasicMaterial({ color: 0xfff1c8, toneMapped: false }), n + 8);
+      const d = new THREE.Object3D(); let i = 0;
+      for (const sx of [-16, 16]) for (let k = 0; k < 26; k++) { d.position.set(sx, 2.4, -2550 + k * 60); d.updateMatrix(); this.rwyLights.setMatrixAt(i++, d.matrix); }
+      for (let k = 0; k < 8; k++) { d.position.set(-14 + k * 4, 2.4, -1048); d.updateMatrix(); this.rwyLights.setMatrixAt(i++, d.matrix); this.rwyLights.setColorAt?.(i - 1, new THREE.Color(0x40ff70)); }
+      for (let k = 0; k < n; k++) this.rwyLights.setColorAt(k, new THREE.Color(0xfff1c8));
+      ap.add(this.rwyLights);
     }
     // parked light aircraft on the apron
     for (let i = 0; i < 3; i++) { const t = buildTrainer(lab, { interior: false }); t.root.scale.setScalar(1); t.root.position.set(130, 2.03, -1760 + i * 18); t.root.rotation.y = Math.PI / 2; ap.add(t.root); }
@@ -247,6 +285,11 @@ float fHash(vec2 p){ return fract(sin(dot(p, vec2(41.3, 289.1))) * 43758.5453); 
     this.trainer.skin.traverse(o => { if (o.isMesh && o.material === M.cockpitGlass) o.material = flightGlass; });
     this.eye = new THREE.Vector3(-0.27, 0.64, -0.16);
 
+    // -------------------------------------------------------------- Sky Challenge game (aircraft, courses, trails)
+    this.game = new SkyGame(this, lab, root);
+    let ac = 'trainer'; try { ac = localStorage.getItem('ff-sky-aircraft') || 'trainer'; } catch { /* ignore */ }
+    this.aircraft = AIRCRAFT[ac] ? ac : 'trainer';
+
     // engine audio (created on first user gesture)
     this.audio = null;
     this.sound = lab.settings?.engine !== false;
@@ -273,6 +316,7 @@ float fHash(vec2 p){ return fract(sin(dot(p, vec2(41.3, 289.1))) * 43758.5453); 
     $('throttle').addEventListener('input', e => { this.state.throttle = +e.target.value / 100; $('throttleVal').textContent = e.target.value + '%'; });
     $('region').innerHTML = Object.entries(REGIONS).map(([k, r]) => `<option value="${k}">${r.name}</option>`).join('');
     $('region').addEventListener('change', e => this.setRegion(e.target.value));
+    this.game.setAircraft(this.aircraft);
   }
 
   initialState() {
@@ -511,7 +555,7 @@ float fHash(vec2 p){ return fract(sin(dot(p, vec2(41.3, 289.1))) * 43758.5453); 
         const x = (r() - 0.5) * 26000, z = -7000 + (r() - 0.5) * 30000;
         if (Math.abs(x) < 320 && z > -4300 && z < 2500) continue;
         const h = this.height(x, z, key);
-        if (h < c.water + 4 || h > Math.min(c.snow - 250, key === 'canyon' ? 900 : 1500)) continue;
+        if (h < c.water + 4 || h > Math.min(Math.max(c.snow - 250, 380), key === 'canyon' ? 900 : 1500)) continue;
         const sl = Math.abs(this.height(x + 30, z, key) - h) + Math.abs(this.height(x, z + 30, key) - h);
         if (sl > 22) continue;
         if (r() > c.trees * (broad ? 0.6 : 1)) continue;
@@ -536,8 +580,28 @@ float fHash(vec2 p){ return fract(sin(dot(p, vec2(41.3, 289.1))) * 43758.5453); 
     // villages near the valley floor
     const vr = rand(99);
     let hn = 0;
-    const towns = key === 'islands' ? [[400, -400], [-2600, -6800], [2900, -9500]] : [[1500, -5200], [-1400, -9000], [700, 900], [-900, -13500]];
-    const wallCols = [0xe9e2d3, 0xd8cbb4, 0xf2efe8, 0xc9b9a0], roofCols = key === 'canyon' ? [0xa0573a, 0xb8754e] : [0x7a3b2e, 0x4b4f55, 0x8a4a2f, 0x5b3a2a];
+    const towns = c.city ? CITY.map(([x, z]) => [x * 0.9 - 600, z + 900]) : key === 'islands' || key === 'volcano' ? [[400, -400], [-2600, -6800], [2900, -9500]] : [[1500, -5200], [-1400, -9000], [700, 900], [-900, -13500]];
+    // downtown towers for the city regions
+    {
+      const tr = rand(4242); let tn = 0;
+      if (c.city) for (const [cx, cz, rad, top] of CITY) {
+        for (let k = 0; k < 180 && tn < this.towers.count; k++) {
+          const a = tr() * 6.28, rr = Math.sqrt(tr()) * rad;
+          const x = Math.round((cx + Math.cos(a) * rr) / 38) * 38, z = Math.round((cz + Math.sin(a) * rr) / 38) * 38, h0 = this.height(x, z, key);
+          if (h0 < c.water + 2 || (Math.abs(x) < 320 && z > -4300 && z < 2500)) continue;
+          const core = 1 - rr / rad, hh = 18 + Math.pow(tr(), 2.2) * top * (0.35 + core * 0.9);
+          const w = 16 + tr() * 14;
+          d.position.set(x, h0 - 1, z); d.rotation.set(0, 0, 0); d.scale.set(w, hh, w * (0.7 + tr() * 0.5)); d.updateMatrix();
+          this.towers.setMatrixAt(tn, d.matrix);
+          this.towers.setColorAt(tn, new THREE.Color().setHSL(0.55 + tr() * 0.08, 0.08 + tr() * 0.1, 0.42 + tr() * 0.3));
+          tn++;
+        }
+      }
+      for (let i = tn; i < this.towers.count; i++) { d.position.set(0, -9999, 0); d.scale.setScalar(0.001); d.updateMatrix(); this.towers.setMatrixAt(i, d.matrix); }
+      this.towers.instanceMatrix.needsUpdate = true; if (this.towers.instanceColor) this.towers.instanceColor.needsUpdate = true;
+      this.towers.computeBoundingSphere();
+    }
+    const wallCols = [0xe9e2d3, 0xd8cbb4, 0xf2efe8, 0xc9b9a0], roofCols = key === 'canyon' || key === 'desert' ? [0xa0573a, 0xb8754e] : key === 'arctic' ? [0x8a2e2a, 0x2e4a6a, 0x3d3d3d] : [0x7a3b2e, 0x4b4f55, 0x8a4a2f, 0x5b3a2a];
     for (const [tx, tz] of towns) {
       for (let k = 0; k < 200 && hn < this.houses.count; k++) {
         const a = vr() * 6.28, rr = Math.sqrt(vr()) * 450;
@@ -559,7 +623,7 @@ float fHash(vec2 p){ return fract(sin(dot(p, vec2(41.3, 289.1))) * 43758.5453); 
       s.visible = s.userData.k < c.clouds;
       s.position.set(b.x, c.cloudBase + b.y, b.z);
     });
-    this.cloudMats.forEach(m => m.color.set(key === 'twilight' ? 0xd9a898 : key === 'highlands' ? 0xc9cfd3 : 0xffffff).multiplyScalar(key === 'twilight' ? 1.0 : 1.45));
+    this.cloudMats.forEach(m => m.color.set(key === 'twilight' || key === 'metro' ? 0xd9a898 : key === 'highlands' || key === 'arctic' ? 0xc9cfd3 : key === 'night' ? 0x3a4256 : 0xffffff).multiplyScalar(key === 'twilight' || key === 'night' ? 1.0 : 1.45));
     // rings sit above the local terrain
     this.rings.forEach((ring, i) => { const [x, y, z] = RINGS[i]; ring.position.set(x, Math.max(y, this.height(x, z, key) + 180), z); });
     if ($('region')) $('region').value = key;
@@ -567,7 +631,14 @@ float fHash(vec2 p){ return fract(sin(dot(p, vec2(41.3, 289.1))) * 43758.5453); 
 
   async applyAtmosphere() {
     const c = REGIONS[this.region];
-    await this.lab.setAtmosphere({ env: c.env, azimuth: c.az, elevation: c.el, turbidity: c.turb, rayleigh: c.ray, exposure: c.exposure, envIntensity: 0.85, sunIntensity: c.el < 8 ? 1.6 : 3.2, sunColor: c.sunColor, hemi: c.el < 8 ? 0.35 : 0.25, fog: c.fog });
+    if (c.night) {
+      // night: moonlight from high up, a dark sky, and the city, runway and aircraft lights doing the rest
+      await this.lab.setAtmosphere({ env: c.env, azimuth: c.az, elevation: 38, exposure: c.exposure, envIntensity: c.envIntensity, sunIntensity: c.sunIntensity, sunColor: c.sunColor, hemi: c.hemi, fog: c.fog, showSky: false, background: '#0a1220' });
+    } else {
+      await this.lab.setAtmosphere({ env: c.env, azimuth: c.az, elevation: c.el, turbidity: c.turb, rayleigh: c.ray, exposure: c.exposure, envIntensity: 0.85, sunIntensity: c.el < 8 ? 1.6 : 3.2, sunColor: c.sunColor, hemi: c.el < 8 ? 0.35 : 0.25, fog: c.fog });
+    }
+    this.towerU.night.value = c.night ? 1 : c.el < 14 ? 0.35 : 0;
+    this.rwyLights.material.color.setScalar(c.night ? 3 : 1);
   }
 
   // ------------------------------------------------------------------ station lifecycle
@@ -581,6 +652,7 @@ float fHash(vec2 p){ return fract(sin(dot(p, vec2(41.3, 289.1))) * 43758.5453); 
     lab.floors = [];
     $('region').hidden = false; $('hud').hidden = false; $('touch').hidden = false;
     $('region').value = this.region;
+    this.game.setAircraft(this.aircraft);
     this.setView(this.view);
     this.panel();
     lab.ui.setHint('Arrow keys: pitch & bank · +/− or Page Up/Down: power · Space: start/pause · C: change view · Gamepad supported');
@@ -589,6 +661,8 @@ float fHash(vec2 p){ return fract(sin(dot(p, vec2(41.3, 289.1))) * 43758.5453); 
 
   exit(lab) {
     this.running = false;
+    this.game?.stop();
+    this.trainer.setLivery?.('navy'); // the livery colours are shared with the hangar's airplane
     $('region').hidden = true; $('hud').hidden = true; $('touch').hidden = true;
     lab.camera.near = 0.05; lab.camera.updateProjectionMatrix();
     lab.shadowFollow = null;
@@ -600,7 +674,7 @@ float fHash(vec2 p){ return fract(sin(dot(p, vec2(41.3, 289.1))) * 43758.5453); 
   setView(v) {
     this.view = v;
     const lab = this.lab;
-    if (v === 'cockpit') { lab.controls.setCockpit({ fov: 68, limits: [2.2, 1.0] }); this.cockpit.visible = true; }
+    if (v === 'cockpit') { lab.controls.setCockpit({ fov: 68, limits: [2.2, 1.0] }); this.cockpit.visible = this.game?.ac.model !== 'jet'; }
     else { lab.controls.setCockpit({ fov: 55, limits: [3.1, 0.7] }); this.cockpit.visible = false; this.chasePos = null; }
   }
 
@@ -615,6 +689,9 @@ float fHash(vec2 p){ return fract(sin(dot(p, vec2(41.3, 289.1))) * 43758.5453); 
 
   resetFlight(keepRunning = false) {
     this.state = this.initialState();
+    const A = this.game?.ac;
+    if (A && A.model === 'jet') { this.state.speed = A.stall + 60; this.state.y = 5000 * FT; this.state.throttle = 0.55; }
+    else if (A) this.state.speed = Math.max(this.state.speed, A.stall + 30);
     if (this.mission === 3) { this.state.heading = 92; }
     $('throttle').value = 62; $('throttleVal').textContent = '62%';
     this.running = keepRunning && this.running;
@@ -644,21 +721,55 @@ float fHash(vec2 p){ return fract(sin(dot(p, vec2(41.3, 289.1))) * 43758.5453); 
   }
 
   panel() {
-    const lab = this.lab;
-    const m = MISSIONS[this.mission];
+    const lab = this.lab, g = this.game;
     const done = lab.progress.missions;
+    const xr = lab.renderer.xr.isPresenting;
+    const regionKeys = Object.keys(REGIONS), acKeys = Object.keys(AIRCRAFT);
+    const nextRegion = () => this.setRegion(regionKeys[(regionKeys.indexOf(this.region) + 1) % regionKeys.length]);
+    const nextAc = () => { g.stop(); g.setAircraft(acKeys[(acKeys.indexOf(this.aircraft) + 1) % acKeys.length]); this.resetFlight(false); };
+    const common = [
+      { label: `Aircraft: ${g.ac.name} ▸`, onClick: nextAc },
+      { label: `Location: ${REGIONS[this.region].name} ▸`, onClick: nextRegion },
+      { label: this.view === 'cockpit' ? 'Outside view' : (g.ac.model === 'jet' ? 'Nose camera' : 'Cockpit view'), onClick: () => this.toggleView() },
+      ...(g.ac.smoke ? [{ label: g.smokeOn ? 'Smoke off' : 'Smoke on', on: g.smokeOn, onClick: () => { g.smokeOn = !g.smokeOn; this.panel(); } }] : []),
+      { label: this.sound ? 'Engine sound off' : 'Engine sound on', onClick: () => { this.sound = !this.sound; if (this.sound) { this.startAudio(); } if (this.audio) this.audio.gain.gain.setTargetAtTime(this.sound && this.running ? 0.05 : 0, this.audio.ctx.currentTime, 0.2); this.panel(); } },
+      ...(xr ? [{ label: 'Recenter seat', onClick: () => (this.recenter = true) }] : []),
+    ];
+    if (g.mode) {
+      const mode = MODES[g.mode], course = g.mode === 'race' ? COURSES[g.course] : null;
+      const brief = g.mode === 'race' ? course.brief + ' Fly through each glowing ring in order; the gold arrow points to the next one.'
+        : g.mode === 'stars' ? 'Collect as many of the 24 gold stars as you can in three minutes. The arrow points to the nearest star.'
+        : 'Land on runway 09: aim for the touchdown-zone markers, wings level, and a gentle descent (under 300 ft/min at touchdown scores best). Reduce power over the threshold.';
+      lab.ui.setPanel({
+        tag: `Sky Challenge · ${REGIONS[this.region].name} · ${g.ac.name}`,
+        title: g.done ? (g.result || mode) : course ? `${mode}: ${course.name}` : mode,
+        html: `<p>${brief}</p><p class="src"><b>Your best (${g.ac.name}):</b> ${g.bestLine()}</p>`,
+        vrText: (g.done ? g.result + '. ' : '') + brief + ' Left stick flies, right stick sets power, A pauses.',
+        buttons: [
+          { label: g.done ? 'Retry' : (this.running ? 'Pause' : 'Resume'), primary: true, onClick: () => (g.done ? g.start(g.mode, g.course) : this.toggleRun()) },
+          { label: 'Restart', onClick: () => g.start(g.mode, g.course) },
+          { label: 'Back to challenges', onClick: () => { g.stop(); this.running = false; this.resetFlight(false); } },
+          ...common,
+        ],
+        progress: { value: g.mode === 'race' ? g.next || 0 : g.mode === 'stars' ? 24 - g.stars.length : g.landed ? 1 : 0, max: g.mode === 'race' ? g.rings.length || 1 : g.mode === 'stars' ? 24 : 1, label: g.mode === 'race' ? `${g.next || 0} of ${g.rings.length} rings` : g.mode === 'stars' ? `${24 - g.stars.length} of 24 stars` : g.landed ? 'Touched down' : 'On approach' },
+        foot: 'A game built on the training flight paths. Simplified flight model: real aircraft fly very differently.',
+      });
+      return;
+    }
+    const m = MISSIONS[this.mission];
     lab.ui.setPanel({
       tag: `05 · Flight practice · ${REGIONS[this.region].name}`,
       title: m.title,
-      html: `<p>${m.brief}</p><p class="src">Small, patient corrections work best. Pitch and power work together; bank turns the airplane. This simplified model omits wind, rudder, trim forces, real stall behaviour and aircraft-specific performance.</p>`,
-      vrText: m.brief + ' Left stick flies, right stick sets power, A starts or pauses the flight and B recenters your seat.',
+      html: `<p>${m.brief}</p><p class="src">Small, patient corrections work best. Pitch and power work together; bank turns the airplane. This simplified model omits wind, rudder, trim forces, real stall behaviour and aircraft-specific performance.</p><p><b>Sky Challenge:</b> race through rings on the training routes, hunt stars or try the landing challenge, in ${Object.keys(AIRCRAFT).length} aircraft over ${regionKeys.length} locations.</p>`,
+      vrText: m.brief + ' Left stick flies, right stick sets power, A starts or pauses the flight and B recenters your seat. Sky Challenge games are further down this list.',
       buttons: [
         { label: this.running ? 'Pause flight' : 'Start flight', primary: true, onClick: () => this.toggleRun() },
         { label: 'Reset', onClick: () => this.resetFlight() },
         ...MISSIONS.map((x, i) => ({ label: `${i + 1}. ${x.title}${done.includes(i) ? ' ✓' : ''}`, on: i === this.mission, onClick: () => { this.mission = i; this.resetFlight(); } })),
-        { label: this.view === 'cockpit' ? 'Outside view' : 'Cockpit view', onClick: () => this.toggleView() },
-        { label: this.sound ? 'Engine sound off' : 'Engine sound on', onClick: () => { this.sound = !this.sound; if (this.sound) { this.startAudio(); } if (this.audio) this.audio.gain.gain.setTargetAtTime(this.sound && this.running ? 0.05 : 0, this.audio.ctx.currentTime, 0.2); this.panel(); } },
-        ...(lab.renderer.xr.isPresenting ? [{ label: 'Recenter seat', onClick: () => (this.recenter = true) }] : []),
+        ...Object.entries(COURSES).map(([k, c]) => ({ label: `🏁 Race: ${c.name}`, onClick: () => g.start('race', k) })),
+        { label: '⭐ Star hunt', onClick: () => g.start('stars') },
+        { label: '🛬 Landing challenge', onClick: () => g.start('landing') },
+        ...common,
       ],
       progress: { value: done.filter(i => i < 4).length, max: 4, label: `${done.filter(i => i < 4).length} of 4 flight missions earned` },
       foot: 'Educational exploration only. No flight-training credit. Learn real procedures with a qualified instructor and your aircraft’s approved handbook.',
@@ -768,20 +879,27 @@ float fHash(vec2 p){ return fract(sin(dot(p, vec2(41.3, 289.1))) * 43758.5453); 
   }
 
   step(dt) {
-    const s = this.state, inp = this.readInput(dt);
-    s.bank += inp.roll * 28 * dt;
+    const s = this.state, inp = this.readInput(dt), A = this.game?.ac || AIRCRAFT.trainer;
+    if (s.onGround) {
+      // rolling out after a landing: stay on the runway centre line
+      const v = s.speed * 0.5144, h = s.heading * Math.PI / 180;
+      s.x += -Math.cos(h) * v * dt; s.z += -Math.sin(h) * v * dt; s.vs = 0; s.agl = 0;
+      return;
+    }
+    s.bank += inp.roll * A.roll * dt;
     if (!inp.roll) s.bank *= Math.exp(-0.55 * dt);
-    s.bank = THREE.MathUtils.clamp(s.bank, -45, 45);
-    s.pitch += inp.pitch * 9 * dt;
+    s.bank = THREE.MathUtils.clamp(s.bank, -A.maxBank, A.maxBank);
+    s.pitch += inp.pitch * A.pitch * dt;
     if (!inp.pitch) s.pitch *= Math.exp(-0.18 * dt);
     // stall: nose drops when too slow
-    s.stall = s.speed < 50;
+    s.stall = s.speed < A.stall;
     if (s.stall) s.pitch -= 6 * dt;
-    s.pitch = THREE.MathUtils.clamp(s.pitch, -15, 18);
-    const target = 58 + s.throttle * 68 - s.pitch * 2.2 + Math.abs(s.bank) * -0.12;
+    s.pitch = THREE.MathUtils.clamp(s.pitch, -15, A.maxPitch);
+    const spdK = A.thr / 68;
+    const target = A.base + s.throttle * A.thr - s.pitch * 2.2 * spdK + Math.abs(s.bank) * -0.12 * spdK;
     s.speed += (target - s.speed) * dt * 0.22;
-    s.speed = THREE.MathUtils.clamp(s.speed, 40, 160);
-    s.vs = s.speed * 101.27 * Math.sin(s.pitch * Math.PI / 180) * 0.85 + (s.throttle - 0.62) * 700 - (s.stall ? 600 : 0) - Math.abs(s.bank) * 4;
+    s.speed = THREE.MathUtils.clamp(s.speed, A.vmin, A.vmax);
+    s.vs = s.speed * 101.27 * Math.sin(s.pitch * Math.PI / 180) * 0.85 + (s.throttle - 0.62) * A.vsK - (s.stall ? 600 : 0) - Math.abs(s.bank) * 4;
     s.turnRate = 1091 * Math.tan(s.bank * Math.PI / 180) / Math.max(40, s.speed); // deg/s
     s.heading = (s.heading + s.turnRate * dt + 360) % 360;
     const v = s.speed * 0.5144;
@@ -790,12 +908,21 @@ float fHash(vec2 p){ return fract(sin(dot(p, vec2(41.3, 289.1))) * 43758.5453); 
     s.z += -Math.sin(h) * v * dt;
     s.y += s.vs * FT / 60 * dt;
     // terrain awareness
-    const ground = this.height(s.x, s.z) + 1;
-    s.agl = s.y - Math.max(ground, REGIONS[this.region].water);
+    const gear = A.model === 'jet' ? 4.2 * A.scale : 1.45;
+    const ground = this.height(s.x, s.z) + gear;
+    s.agl = s.y - Math.max(ground, REGIONS[this.region].water + gear);
     if (s.agl < 0) {
+      if (this.game?.groundContact(s)) { s.y = this.height(s.x, s.z) + gear; s.agl = 0; return; }
+      if (this.game?.mode && !this.game.done) { this.game.finish('Crashed · choose Retry to fly it again'); this.resetFlight(false); return; }
       this.lab.ui.toast('Terrain contact: flight reset. Plan altitude and terrain clearance.', 'bad');
       this.resetFlight(true);
       return;
+    }
+    // city towers are solid too
+    if (REGIONS[this.region].city && s.y < 260 && this.towerHit(s)) {
+      if (this.game?.mode && !this.game.done) { this.game.finish('Hit a building · choose Retry to fly it again'); this.resetFlight(false); return; }
+      this.lab.ui.toast('Building strike: flight reset. Keep clear of the towers.', 'bad');
+      this.resetFlight(true); return;
     }
     // keep within the world
     if (Math.abs(s.x) > 12500 || s.z < -21000 || s.z > 7500) {
@@ -806,8 +933,20 @@ float fHash(vec2 p){ return fract(sin(dot(p, vec2(41.3, 289.1))) * 43758.5453); 
     this.missionCheck(dt);
   }
 
+  /** Is the aircraft inside one of the city towers? */
+  towerHit(s) {
+    const m = new THREE.Matrix4(), p = new THREE.Vector3(), q = new THREE.Quaternion(), sc = new THREE.Vector3();
+    for (let i = 0; i < this.towers.count; i++) {
+      this.towers.getMatrixAt(i, m); m.decompose(p, q, sc);
+      if (p.y < -9000) break;
+      if (Math.abs(s.x - p.x) < sc.x / 2 + 3 && Math.abs(s.z - p.z) < sc.z / 2 + 3 && s.y < p.y + sc.y) return true;
+    }
+    return false;
+  }
+
   missionCheck(dt) {
     const s = this.state, lab = this.lab;
+    if (this.game?.mode) return; // the Sky Challenge game sets the status line itself
     const alt = s.y / FT;
     const hd = tgt => Math.abs(((s.heading - tgt + 540) % 360) - 180);
     let good = false;
@@ -853,6 +992,7 @@ float fHash(vec2 p){ return fract(sin(dot(p, vec2(41.3, 289.1))) * 43758.5453); 
   update(dt, t, lab) {
     const s = this.state;
     if (this.running) this.step(dt);
+    this.rings.forEach(r => (r.visible = !this.game?.mode && this.mission === 3));
     // place the airplane
     this.plane.position.set(s.x, s.y, s.z);
     this.plane.rotation.set(s.pitch * Math.PI / 180, (90 - s.heading) * Math.PI / 180, -s.bank * Math.PI / 180, 'YXZ');
@@ -890,8 +1030,8 @@ float fHash(vec2 p){ return fract(sin(dot(p, vec2(41.3, 289.1))) * 43758.5453); 
     } else {
       lab.rig.position.set(0, 0, 0); lab.rig.quaternion.identity();
       // chase camera behind and above, with drag-to-orbit
-      const yawOff = lab.controls.cockpit.yaw * 1.5;
-      const back = new THREE.Vector3(Math.sin(yawOff) * 14, 3.5 + lab.controls.cockpit.pitch * 6, Math.cos(yawOff) * 14);
+      const yawOff = lab.controls.cockpit.yaw * 1.5, D = this.game?.ac.chase || 14;
+      const back = new THREE.Vector3(Math.sin(yawOff) * D, D * 0.25 + lab.controls.cockpit.pitch * 6 * D / 14, Math.cos(yawOff) * D);
       const yawQ = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), (90 - s.heading) * Math.PI / 180);
       const target = this.plane.position.clone().add(back.applyQuaternion(yawQ));
       if (!this.chasePos) this.chasePos = target.clone();
@@ -899,6 +1039,8 @@ float fHash(vec2 p){ return fract(sin(dot(p, vec2(41.3, 289.1))) * 43758.5453); 
       lab.camera.position.copy(this.chasePos);
       lab.camera.lookAt(this.plane.position.x, this.plane.position.y + 1, this.plane.position.z);
     }
+    if (this.game?.ac.model === 'jet') this.cockpit.visible = false; // jets fly from a nose camera
+    this.game?.update(dt);
     // water + windsock + clouds
     this.waterNormal.offset.set(t * 0.004, t * 0.0025);
     if (this.waterR) {
@@ -917,7 +1059,7 @@ float fHash(vec2 p){ return fract(sin(dot(p, vec2(41.3, 289.1))) * 43758.5453); 
       this.drawPanel();
       const alt = Math.round(s.y / FT), warn = s.stall ? '<div class="warn">STALL WARNING · lower the nose, add power</div>' : (s.agl !== undefined && s.agl < 150 && this.running ? '<div class="warn">TERRAIN · climb or turn away</div>' : '');
       $('hud').innerHTML = `<div class="row"><div class="g"><small>AIRSPEED</small><b>${Math.round(s.speed)}</b> kt</div><div class="g"><small>ALTITUDE</small><b>${alt.toLocaleString()}</b> ft</div><div class="g"><small>HEADING</small><b>${String(Math.round(s.heading) % 360).padStart(3, '0')}°</b></div><div class="g"><small>VERT SPEED</small><b>${Math.round(s.vs / 10) * 10}</b></div></div>
-<div class="m"><b>${MISSIONS[this.mission].title}</b> · ${this.running ? (this.status || '') : 'Paused: press Start or Space'}<div class="bar"><i style="width:${Math.round((this.statusFrac || 0) * 100)}%"></i></div>Power ${Math.round(s.throttle * 100)}% · Bank ${Math.round(s.bank)}°</div>${warn}`;
+<div class="m"><b>${this.game?.mode ? MODES[this.game.mode] : MISSIONS[this.mission].title}</b> · ${this.running ? (this.status || '') : 'Paused: press Start or Space'}<div class="bar"><i style="width:${Math.round((this.statusFrac || 0) * 100)}%"></i></div>Power ${Math.round(s.throttle * 100)}% · Bank ${Math.round(s.bank)}° · ${this.game?.ac.name || ''}</div>${warn}`;
     }
   }
 }
