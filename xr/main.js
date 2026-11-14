@@ -2,6 +2,7 @@
 import { Lab } from './core.js';
 import { UI } from './ui.js';
 import { Shell } from './shell.js';
+import { GamepadInput } from './gamepad.js';
 import { audio } from './audio.js';
 import * as THREE from 'three';
 
@@ -98,6 +99,7 @@ async function boot() {
     }
   } catch { /* storage blocked */ }
   const shell = window.ffShell = new Shell(lab, support);
+  lab.gamepad = new GamepadInput(lab, shell);   // Xbox / PlayStation / standard controllers
   const photo = document.body.classList.contains('photo');
   const embedded = document.body.classList.contains('embedded');
   if (!lab.stations[key]) {

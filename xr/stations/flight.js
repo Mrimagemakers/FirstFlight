@@ -735,14 +735,16 @@ float fHash(vec2 p){ return fract(sin(dot(p, vec2(41.3, 289.1))) * 43758.5453); 
     let pitch = (k.has('ArrowDown') || t.ArrowDown ? 1 : 0) - (k.has('ArrowUp') || t.ArrowUp ? 1 : 0);
     let thr = (k.has('Equal') || k.has('NumpadAdd') || k.has('PageUp') ? 1 : 0) - (k.has('Minus') || k.has('NumpadSubtract') || k.has('PageDown') ? 1 : 0);
     // gamepad (desktop)
-    const gp = navigator.getGamepads?.().find(g => g && g.connected && g.mapping === 'standard');
-    if (gp) {
+    const pads = [...(navigator.getGamepads?.() || [])];
+    const gp = pads.find(g => g && g.connected && g.mapping === 'standard') || pads.find(g => g && g.connected && g.buttons.length >= 12);
+    const menuOpen = !!document.querySelector('#shell .modal') || document.body.classList.contains('title') || this.lab.gamepad?.panelFocus;
+    if (gp && !menuOpen) {
       if (Math.abs(gp.axes[0]) > 0.1) roll = gp.axes[0];
       if (Math.abs(gp.axes[1]) > 0.1) pitch = gp.axes[1];
       thr += (gp.buttons[7]?.value || 0) - (gp.buttons[6]?.value || 0);
       if (gp.buttons[0]?.pressed && !this.gpA) this.toggleRun();
       this.gpA = gp.buttons[0]?.pressed;
-    }
+    } else if (gp) this.gpA = gp.buttons[0]?.pressed;
     // XR controllers
     const lab = this.lab;
     if (lab.renderer.xr.isPresenting) {

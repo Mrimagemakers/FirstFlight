@@ -472,6 +472,28 @@ $('arBtn').onclick = async () => {
   alertHelp(/iPhone|iPad/.test(navigator.userAgent) ? 'Open this page in Safari to use AR Quick Look.' : /Android/.test(navigator.userAgent) ? 'Open this page in Google Chrome and make sure Google Play Services for AR is installed and up to date.' : 'This device or browser can’t place 3D models in AR. Scan the code with your phone to open this page there, or keep exploring in 3D here.');
 };
 
+// ------------------------------------------------------------------ Xbox / PlayStation controller
+// Left stick orbits, right stick or LT/RT zoom, A/✕ next part, B/○ reset view, X/□ explode, Y/△ labels,
+// LB/RB (L1/R1) previous / next model.
+const pad = { prev: [], sel: -1 };
+function pollPad(dt) {
+  const pads = [...(navigator.getGamepads?.() || [])];
+  const gp = pads.find(g => g && g.connected && g.mapping === 'standard') || pads.find(g => g && g.connected && g.buttons.length >= 12);
+  if (!gp) return;
+  const dzf = v => (Math.abs(v) < 0.16 ? 0 : v);
+  const down = gp.buttons.map(b => b.pressed), hit = i => down[i] && !pad.prev[i];
+  const lx = dzf(gp.axes[0] || 0), ly = dzf(gp.axes[1] || 0), ry = dzf(gp.axes[3] || 0);
+  if ((lx || ly) && controls._rotateLeft) { tween = null; controls._rotateLeft(lx * 2.2 * dt); controls._rotateUp(ly * 1.6 * dt); }
+  const z = ry * 1.4 + ((gp.buttons[6]?.value || 0) - (gp.buttons[7]?.value || 0)) * 1.4;
+  if (Math.abs(z) > 0.05) zoomLog += z * dt;
+  if (current && hit(0)) { const n = current.labels.length; if (n) { pad.sel = (pad.sel + 1) % n; if (current.labels[pad.sel].exploded && explodeTarget < 0.6) setExplode(1); select(pad.sel, { focus: true }); } }
+  if (hit(1) && current) { frame(current); select(-1); pad.sel = -1; }
+  if (hit(2)) setExplode(explodeTarget > 0.5 ? 0 : 1);
+  if (hit(3)) { showLabels = !showLabels; tog($('labelsBtn'), showLabels); }
+  if ((hit(4) || hit(5)) && current) { const i = CATALOG.indexOf(current.item), n = CATALOG.length; pad.sel = -1; load(CATALOG[(i + (hit(5) ? 1 : n - 1)) % n].id); }
+  pad.prev = down;
+}
+
 // ------------------------------------------------------------------ loop
 const clock = new THREE.Clock();
 renderer.setAnimationLoop((t, frameXR) => {
@@ -484,6 +506,7 @@ renderer.setAnimationLoop((t, frameXR) => {
   if (frameXR) arFrame(frameXR);
   else {
     if (tween) { tween.t = Math.min(1, tween.t + dt * 2.2); controls.target.lerpVectors(tween.from, tween.to, tween.t * tween.t * (3 - 2 * tween.t)); if (tween.t >= 1) tween = null; }
+    pollPad(dt);
     if (Math.abs(zoomLog) > 1e-4) { const step = zoomLog * Math.min(1, dt * 9); zoomLog -= step; if ('_scale' in controls) { controls._performCursorZoom = false; controls._scale *= Math.exp(step); } else zoomLog = 0; }
     controls.update();
   }
