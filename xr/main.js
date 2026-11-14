@@ -3,6 +3,7 @@ import { Lab } from './core.js';
 import { UI } from './ui.js';
 import { Shell } from './shell.js';
 import { GamepadInput } from './gamepad.js';
+import { Cardboard, cardboardCapable } from './cardboard.js';
 import { audio } from './audio.js';
 import * as THREE from 'three';
 
@@ -76,11 +77,19 @@ async function boot() {
 
   // ----------------------------------------------------------- XR buttons
   const support = await lab.xrSupport();
+  // phone viewers (Google Cardboard and similar "VR box" headsets): split-screen stereo with head tracking
+  lab.cardboard = new Cardboard(lab);
+  support.cardboard = cardboardCapable() || new URLSearchParams(location.search).has('cardboard');
   const vr = $('vrBtn');
   if (support.vr) { vr.disabled = false; vr.textContent = 'Enter VR'; }
+  else if (support.cardboard) { vr.disabled = false; vr.textContent = 'Phone VR'; }
   else vr.textContent = navigator.xr ? 'No VR headset found' : 'VR not available here';
-  vr.title = support.vr ? 'Open this station in your headset' : 'Open this page in a WebXR browser such as the Meta Quest Browser to use VR';
-  vr.onclick = () => lab.startXR('immersive-vr').catch(e => ui.toast('Could not start VR: ' + e.message, 'bad'));
+  vr.title = support.vr ? 'Open this station in your headset' : support.cardboard ? 'Play with your phone in a Google Cardboard or similar viewer' : 'Open this page in a WebXR browser such as the Meta Quest Browser, or on a phone with a Cardboard viewer, to use VR';
+  vr.onclick = () => {
+    if (!support.vr && support.cardboard) { lab.cardboard.active ? lab.cardboard.stop() : lab.cardboard.start(); return; }
+    lab.startXR('immersive-vr').catch(e => ui.toast('Could not start VR: ' + e.message, 'bad'));
+  };
+  addEventListener('keydown', e => { if (e.key === 'Escape' && lab.cardboard.active) lab.cardboard.stop(); });
   const ar = $('arBtn');
   ar.hidden = !support.ar;
   ar.onclick = async () => { if (!['hangar', 'walkaround'].includes(lab.stationKey)) await lab.go('hangar'); lab.startXR('immersive-ar').catch(e => ui.toast('Could not start AR: ' + e.message, 'bad')); };
@@ -107,6 +116,12 @@ async function boot() {
     else key = 'hangar';
   }
   if (key) await lab.go(key, { sub });
+  // ?cardboard=watch or ?cardboard=play opens straight into phone VR (the first tap starts it)
+  const cbq = new URLSearchParams(location.search).get('cardboard');
+  if (cbq && support.cardboard && !lab.cardboard.active) {
+    const go = async () => { removeEventListener('click', go, true); await shell.phoneVR(cbq === 'watch'); };
+    addEventListener('click', go, true);
+  }
   // first user gesture unlocks audio
   addEventListener('pointerdown', () => audio.unlock(), { once: true });
   addEventListener('keydown', () => audio.unlock(), { once: true });

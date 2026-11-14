@@ -244,7 +244,7 @@ export class DesktopControls {
           // gently turn toward travel direction
           const desired = Math.atan2(-tmpV.x, -tmpV.z);
           let diff = ((desired - w.yaw + Math.PI * 3) % (Math.PI * 2)) - Math.PI;
-          if (d > 1.2) w.yaw += diff * Math.min(1, dt * 1.5);
+          if (d > 1.2 && !this.lab.cardboard?.active) w.yaw += diff * Math.min(1, dt * 1.5);
         }
       }
       if (w.bounds) w.bounds(w.pos);

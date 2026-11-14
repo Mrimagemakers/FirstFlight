@@ -172,3 +172,34 @@ body.title .zoom-ctl,body.photo .zoom-ctl{display:none}
 #padReticle.on{transform:scale(1.8);background:var(--gold2)}
 #padReticle[hidden],body:not(.pad) #padReticle,body.title #padReticle,body.photo #padReticle{display:none}
 body.pad-nav :focus{outline:3px solid var(--gold2)!important;outline-offset:3px;box-shadow:0 0 0 6px rgba(240,194,124,.25)}
+/* phone VR (Google Cardboard and similar viewers) */
+.t-menu button small,.p-menu button small{display:block;font-size:11px;font-weight:500;color:var(--muted);margin-top:5px;letter-spacing:.02em}
+.t-menu .t-primary small{color:rgba(15,29,39,.7)}
+body.cardboard #top,body.cardboard #panel,body.cardboard #hint,body.cardboard #hud,body.cardboard #touch,body.cardboard #toast,body.cardboard .zoom-ctl,body.cardboard #padReticle,body.cardboard #shell{display:none!important}
+#cbOverlay{position:fixed;inset:0;z-index:30;touch-action:none;user-select:none;-webkit-user-select:none;-webkit-tap-highlight-color:transparent}
+#cbOverlay[hidden]{display:none}
+.cb-divider{position:absolute;left:50%;top:0;bottom:0;width:2px;margin-left:-1px;background:rgba(0,0,0,.85);pointer-events:none}
+.cb-exit{position:absolute;left:50%;top:max(8px,env(safe-area-inset-top));transform:translateX(-50%);width:38px;height:38px;padding:0;border-radius:50%;font-size:16px;background:rgba(10,20,28,.65);border:1px solid rgba(255,255,255,.25);color:#fff;z-index:2}
+.cb-rotate,.cb-intro{position:absolute;inset:0;display:none;place-items:center;align-content:center;gap:10px;text-align:center;background:rgba(8,16,24,.92);color:#eef3f4;padding:24px}
+.cb-rotate b{font-size:20px}.cb-rotate span{color:var(--muted);max-width:280px}
+#cbOverlay.portrait .cb-rotate{display:grid}
+#cbOverlay.intro:not(.portrait) .cb-intro{display:grid}
+.cb-card{max-width:520px;text-align:left}
+.cb-card h2{margin:0 0 8px;font-size:20px;color:var(--gold2)}
+.cb-card ul{margin:0 0 14px;padding-left:18px;line-height:1.55;font-size:13.5px;color:#d2dee2}
+.cb-go{width:100%;padding:14px;font-weight:700;font-size:16px;background:var(--gold);color:var(--ink);border-color:var(--gold)}
+/* phone VR (Google Cardboard and similar viewers) */
+body.cardboard #top,body.cardboard #panel,body.cardboard #hint,body.cardboard #hud,body.cardboard #touch,body.cardboard #toast,body.cardboard .zoom-ctl,body.cardboard #padReticle,body.cardboard #shell{display:none!important}
+#cbOverlay{position:fixed;inset:0;z-index:30;touch-action:none;user-select:none;-webkit-user-select:none}
+#cbOverlay .cb-divider{position:absolute;left:50%;top:0;bottom:0;width:2px;margin-left:-1px;background:rgba(0,0,0,.9)}
+#cbOverlay .cb-exit{position:absolute;left:50%;top:max(8px,env(safe-area-inset-top));transform:translateX(-50%);width:40px;height:40px;padding:0;border-radius:50%;background:rgba(0,0,0,.55);color:#fff;font-size:18px;border:1px solid rgba(255,255,255,.25);z-index:2}
+#cbOverlay .cb-rotate,#cbOverlay .cb-intro{display:none;position:absolute;inset:0;place-items:center;align-content:center;gap:10px;text-align:center;background:rgba(8,16,24,.92);color:#fff;padding:24px}
+#cbOverlay.portrait .cb-rotate{display:grid}
+#cbOverlay .cb-rotate b{font-size:20px}#cbOverlay .cb-rotate span{color:#b9c9cf}
+#cbOverlay.intro:not(.portrait) .cb-intro{display:grid}
+#cbOverlay .cb-card{max-width:520px;text-align:left;background:#101e29;border:1px solid rgba(255,255,255,.14);border-radius:16px;padding:18px 22px}
+#cbOverlay .cb-card h2{margin:0 0 8px;font-size:20px}
+#cbOverlay .cb-card ul{margin:0 0 14px;padding-left:18px;color:#c9d7dc;font-size:14px;line-height:1.55}
+#cbOverlay .cb-go{width:100%;background:var(--gold);color:var(--ink);border-color:var(--gold);font-weight:700;font-size:16px;padding:12px}
+.t-menu small{display:block;font-weight:500;font-size:11px;color:#9fb2bc;margin-top:4px}
+.t-menu .t-primary small{color:#3d3424}

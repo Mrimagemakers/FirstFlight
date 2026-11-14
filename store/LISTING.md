@@ -26,7 +26,7 @@ First Flight puts you on the ramp, in the cabin, in the maintenance hangar and i
 - **Fly.** Take the controls in a detailed cockpit with working instruments. Fly four missions over six realistic regions: Alpine Lakes, Pacific Coast, Red Rock Canyon, Emerald Islands, Northern Highlands and Blue Hour Valley.
 
 **Built for VR and for every screen**
-Play seated or standing in a Meta Quest headset with teleport, snap turning and smooth movement, a menu that rides on your hand and hand-tracking support. Floating lesson panels go wherever you need them. The same experience runs on desktop, laptop, tablet and phone with mouse, touch, or an Xbox or PlayStation controller.
+Play seated or standing in a Meta Quest headset with teleport, snap turning and smooth movement, a menu that rides on your hand and hand-tracking support. Floating lesson panels go wherever you need them. The same experience runs on desktop, laptop, tablet and phone with mouse, touch, or an Xbox or PlayStation controller, and on phones in a Google Cardboard–style viewer.
 
 **Plan a real career**
 The built-in Aviation Careers & New-Hire Hub covers 15 airport and airline roles, a 90-day new-hire plan, a Day-1 orientation agenda, orientation scenarios and practical tools such as an application tracker and a training passport. Its Aviation Maintenance Center adds 14 maintenance careers, a step-by-step FAA mechanic (A&P) pathway, 11 interactive tutorials on tool control, technical data, records, torque, safety wire, rivets, human factors, corrosion, NDT, inspections and hangar safety, and working technician tools. It links to official FAA, IATA, OSHA and employer resources.

@@ -91,6 +91,15 @@ export class GamepadInput {
     const title = document.body.classList.contains('title');
     const ui = modal || (title ? document.querySelector('.title-screen') : null) || (this.panelFocus ? document.getElementById('panel') : null);
 
+    // ------------------------------------------------ phone VR: the floating 3D menu replaces the screen menus
+    if (this.lab.cardboard?.active) {
+      if (hit(B.MENU)) this.lab.ui.vr.toggle('stations');
+      if (hit(B.Y)) this.lab.ui.vr.toggle('lesson');
+      if (hit(B.B) && this.lab.ui.vr.page !== 'lesson') { this.lab.ui.vr.page = 'lesson'; this.lab.ui.vr.dirty = true; }
+      this.play(gp, down, hit, val, ax, dt, true);
+      this.prev = down;
+      return;
+    }
     // ------------------------------------------------ global buttons
     if (hit(B.MENU)) { if (modal) this.back(modal); else if (!title) this.shell.pause(); }
     if (hit(B.VIEW) && !title && !modal) this.shell.help();
@@ -180,11 +189,11 @@ export class GamepadInput {
   }
 
   // ------------------------------------------------------------------ gameplay
-  play(gp, down, hit, val, ax, dt) {
+  play(gp, down, hit, val, ax, dt, phoneVR = false) {
     const lab = this.lab, c = lab.controls, key = lab.stationKey;
     document.body.classList.remove('pad-nav');
     const flying = key === 'flight';
-    this.reticle.hidden = flying || !document.body.classList.contains('pad');
+    this.reticle.hidden = phoneVR || flying || !document.body.classList.contains('pad');
 
     // stations
     if (hit(B.LB) || hit(B.RB)) {
@@ -193,13 +202,13 @@ export class GamepadInput {
       return;
     }
     // lesson panel: Y moves focus into its buttons
-    if (hit(B.Y) && !flying) { this.panelFocus = true; document.body.classList.remove('panel-collapsed'); return; }
+    if (hit(B.Y) && !flying && !phoneVR) { this.panelFocus = true; document.body.classList.remove('panel-collapsed'); return; }
 
     if (flying) {
       // the flight station reads the left stick, triggers and A itself
       if (hit(B.Y)) lab.station?.impl?.toggleView?.();
       if (hit(B.X)) this.panelFocus = true;
-      if (c.mode === 'cockpit') {
+      if (c.mode === 'cockpit' && !phoneVR) {
         const k = 2.2 * dt * (lab.camera.fov / 60);
         c.cockpit.yaw = THREE.MathUtils.clamp(c.cockpit.yaw - ax[2] * k, -c.cockpit.limits[0], c.cockpit.limits[0]);
         c.cockpit.pitch = THREE.MathUtils.clamp(c.cockpit.pitch - ax[3] * k, -c.cockpit.limits[1], c.cockpit.limits[1]);
@@ -216,7 +225,7 @@ export class GamepadInput {
     if (c.mode === 'walk') {
       const w = c.walk, k = 2.4 * dt * (lab.camera.fov / 60);
       w.yaw -= ax[2] * k;
-      w.pitch = THREE.MathUtils.clamp(w.pitch - ax[3] * k * 0.8, -1.35, 1.35);
+      if (!phoneVR) w.pitch = THREE.MathUtils.clamp(w.pitch - ax[3] * k * 0.8, -1.35, 1.35);
       if (ax[0] || ax[1]) {
         w.target = null;
         const sp = w.speed * (down[B.LS] ? 2.2 : 1) * Math.min(1, Math.hypot(ax[0], ax[1]));

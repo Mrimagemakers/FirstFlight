@@ -142,7 +142,7 @@ export class Hotspots {
     const cam = this.lab.renderer.xr.isPresenting ? this.lab.renderer.xr.getCamera() : this.lab.camera;
     const camPos = new THREE.Vector3();
     cam.getWorldPosition(camPos);
-    const xr = this.lab.renderer.xr.isPresenting;
+    const xr = this.lab.renderer.xr.isPresenting || !!this.lab.cardboard?.active;
     for (const it of this.items.values()) {
       if (!it.root.visible) continue;
       const d = camPos.distanceTo(it.root.position);

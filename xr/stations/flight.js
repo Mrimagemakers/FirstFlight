@@ -734,6 +734,13 @@ float fHash(vec2 p){ return fract(sin(dot(p, vec2(41.3, 289.1))) * 43758.5453); 
     let roll = (k.has('ArrowRight') || t.ArrowRight ? 1 : 0) - (k.has('ArrowLeft') || t.ArrowLeft ? 1 : 0);
     let pitch = (k.has('ArrowDown') || t.ArrowDown ? 1 : 0) - (k.has('ArrowUp') || t.ArrowUp ? 1 : 0);
     let thr = (k.has('Equal') || k.has('NumpadAdd') || k.has('PageUp') ? 1 : 0) - (k.has('Minus') || k.has('NumpadSubtract') || k.has('PageDown') ? 1 : 0);
+    // phone VR: tilt your head to bank, look up/down to climb or descend
+    const cb = this.lab.cardboard?.active && this.running ? this.lab.cardboard.flightInput() : null;
+    if (cb) {
+      if (!roll && cb.roll) roll = cb.roll;
+      if (!pitch && cb.pitch) pitch = cb.pitch;  // look up = nose up
+      if (this.state.throttle < cb.throttle) thr = Math.max(thr, 1);
+    }
     // gamepad (desktop)
     const pads = [...(navigator.getGamepads?.() || [])];
     const gp = pads.find(g => g && g.connected && g.mapping === 'standard') || pads.find(g => g && g.connected && g.buttons.length >= 12);

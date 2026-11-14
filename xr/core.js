@@ -244,6 +244,7 @@ export class Lab {
       this.updatePost();
       audio.ambience(next.ambience || key);
       if (this.renderer.xr.isPresenting) this.placeXR();
+      if (this.cardboard?.active) this.cardboard.recenter();
       this.ui.setStation(key);
       try { history.replaceState(null, '', '#' + key + (opts.sub ? ':' + opts.sub : '')); } catch { /* sandboxed */ }
       try { parent?.postMessage({ type: 'ff-xr-station', key }, location.origin); } catch { /* not embedded */ }
@@ -366,6 +367,7 @@ export class Lab {
     else this.controls.update(dt);
     this.station?.update?.(dt, this.elapsed, this);
     this.cinematic?.(dt, this.elapsed);
+    if (this.cardboard?.active) this.cardboard.update(dt);
     this.hotspots.update(dt);
     this.ui.vr.update(dt);
     if (this.shadowFollow) {
@@ -377,7 +379,8 @@ export class Lab {
     const camPos = this.camera.getWorldPosition(new THREE.Vector3());
     this.flare.visible = settings.flare && this.sky.visible && this.sunDir.y > -0.02 && !this.renderer.xr.isPresenting;
     this.flare.position.copy(camPos).addScaledVector(this.sunDir, 20000);
-    if (!this.renderer.xr.isPresenting && this.post.enabled) this.post.render(dt);
+    if (this.cardboard?.active) this.cardboard.render();
+    else if (!this.renderer.xr.isPresenting && this.post.enabled) this.post.render(dt);
     else this.renderer.render(this.scene, this.camera);
   }
 }

@@ -139,7 +139,7 @@ class VRPanel {
   }
 
   toggle(page) {
-    if (!this.lab?.renderer.xr.isPresenting) return;
+    if (!this.lab?.renderer.xr.isPresenting && !this.lab?.cardboard?.active) return;
     if (page && (!this.mesh.visible || this.page !== page)) { this.page = page; this.shown = true; this.mesh.visible = true; this.place(); }
     else { this.shown = !this.mesh.visible; this.mesh.visible = this.shown; if (this.shown) this.place(); }
     this.dirty = true;
@@ -155,7 +155,7 @@ class VRPanel {
       this.mesh.rotation.set(-0.62, 0.28, 0, 'YXZ');
     } else {
       if (this.mesh.parent !== this.lab.rig) this.lab.rig.add(this.mesh);
-      this.mesh.scale.setScalar(0.66);
+      this.mesh.scale.setScalar(this.lab.renderer.xr.isPresenting ? 0.66 : 0.72);
       this.summon(true);
     }
     this.dirty = true;
@@ -164,17 +164,18 @@ class VRPanel {
   /** Floating mode: place the panel in front of, and slightly left of, the user's gaze. */
   summon(force = false) {
     const lab = this.lab;
-    if (!lab?.renderer.xr.isPresenting) return;
+    if (!lab?.renderer.xr.isPresenting && !lab?.cardboard?.active) return;
     if (this.inHand && !force) { this.toggle(); return; }
     if (this.inHand) return;
     if (!this.mesh.visible && this.shown) this.mesh.visible = true;
-    const cam = lab.renderer.xr.getCamera();
+    const cam = lab.renderer.xr.isPresenting ? lab.renderer.xr.getCamera() : lab.camera;
     const head = new THREE.Vector3(); cam.getWorldPosition(head);
     const q = new THREE.Quaternion(); cam.getWorldQuaternion(q);
     const fwd = new THREE.Vector3(0, 0, -1).applyQuaternion(q); fwd.y = 0;
     if (fwd.lengthSq() < 1e-4) fwd.set(0, 0, -1);
-    fwd.normalize().applyAxisAngle(new THREE.Vector3(0, 1, 0), 0.3);
-    const world = head.clone().addScaledVector(fwd, 0.8); world.y = head.y - 0.1;
+    const phone = !lab.renderer.xr.isPresenting;   // phone VR: further away, lower and to the left
+    fwd.normalize().applyAxisAngle(new THREE.Vector3(0, 1, 0), phone ? 0.55 : 0.3);
+    const world = head.clone().addScaledVector(fwd, phone ? 1.25 : 0.8); world.y = head.y - (phone ? 0.32 : 0.1);
     this.mesh.position.copy(lab.rig.worldToLocal(world.clone()));
     this.mesh.lookAt(head);
     this.mesh.quaternion.premultiply(lab.rig.getWorldQuaternion(new THREE.Quaternion()).invert());
@@ -211,7 +212,7 @@ class VRPanel {
     const tabs = [['lesson', 'Lesson'], ['stations', 'Stations'], ['comfort', 'Comfort'], ['exit', 'Exit VR']];
     const tw = (W - PAD * 2 - 3 * 12) / 4;
     tabs.forEach(([k, t], i) => {
-      const r = { x: PAD + i * (tw + 12), y: 24, w: tw, h: TAB_H, action: () => { if (k === 'exit') this.lab.renderer.xr.getSession()?.end(); else { this.page = k; this.dirty = true; } } };
+      const r = { x: PAD + i * (tw + 12), y: 24, w: tw, h: TAB_H, action: () => { if (k === 'exit') { if (this.lab.cardboard?.active) this.lab.cardboard.stop(); else this.lab.renderer.xr.getSession()?.end(); } else { this.page = k; this.dirty = true; } } };
       this.button(r, t, { primary: this.page === k, danger: k === 'exit', size: 30 });
     });
     if (this.page === 'stations') this.drawStations();

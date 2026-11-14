@@ -50,6 +50,7 @@ export class Shell {
         <button class="t-primary" data-act="start">Start training</button>
         ${lastSt ? `<button data-act="continue">Continue · ${esc(lastSt.name)}</button>` : ''}
         ${this.support.vr ? '<button data-act="vr">Enter VR</button>' : ''}
+        ${this.support.cardboard && !this.support.vr ? '<button data-act="cardboard">Play in phone VR <small>Google Cardboard</small></button><button data-act="watch">Watch in phone VR <small>guided tour</small></button>' : ''}
         <button data-act="settings">Settings</button>
         <button data-act="help">How to play</button>
         <a ${AR_LINK} data-act="ar">AR aircraft explorer ↗</a>
@@ -58,7 +59,7 @@ export class Shell {
       </nav>
       <footer class="t-foot"><span>v${VERSION}</span><span>${this.support.vr ? 'VR headset detected' : 'Works with mouse, touch, Xbox and PlayStation controllers, and WebXR headsets'}</span><span>© PenGame Publishing</span></footer>
     </section>`));
-    this.bind({ start: () => this.stations(), continue: () => this.launch(lastSt.key), vr: () => { this.launch(last || 'ramp').then(() => lab.startXR('immersive-vr').catch(e => lab.ui.toast('Could not start VR: ' + e.message, 'bad'))); }, settings: () => this.settings('title'), help: () => this.help('title'), about: () => this.about('title') });
+    this.bind({ start: () => this.stations(), continue: () => this.launch(lastSt.key), vr: () => { this.launch(last || 'ramp').then(() => lab.startXR('immersive-vr').catch(e => lab.ui.toast('Could not start VR: ' + e.message, 'bad'))); }, settings: () => this.settings('title'), help: () => this.help('title'), about: () => this.about('title'), cardboard: () => this.phoneVR(false), watch: () => this.phoneVR(true) });
     // attract mode: slow cinematic orbit around the airliner at the gate
     if (lab.stationKey !== 'ramp') await lab.go('ramp');
     lab.hotspots.group.visible = false;
@@ -76,6 +77,20 @@ export class Shell {
 
   bind(map) {
     this.root.querySelectorAll('[data-act]').forEach(b => { const f = map[b.dataset.act]; if (f) b.addEventListener('click', e => { if (b.tagName === 'A' && b.dataset.act !== 'hub') e.preventDefault(); audio.unlock(); f(); }); });
+  }
+
+  /** Phone VR (Cardboard): must start inside the tap so the phone allows motion sensors and full screen. */
+  async phoneVR(watch) {
+    const cb = this.lab.cardboard;
+    if (!cb) return;
+    let last = null; try { last = localStorage.getItem('ff-last-station'); } catch { /* ignore */ }
+    const started = cb.start({ watch });
+    this.close();
+    const key = watch ? (['ramp', 'cabin', 'hangar', 'walkaround'].includes(this.lab.stationKey) && !document.body.classList.contains('title') ? this.lab.stationKey : 'ramp') : (last && last !== 'flight' ? last : 'ramp');
+    if (document.body.classList.contains('title') || this.lab.stationKey !== key) await this.launch(key);
+    await started;
+    cb.recenter();
+    if (watch) cb.startTour();
   }
 
   endTitle() {
@@ -125,6 +140,7 @@ export class Shell {
     const body = el(`<nav class="p-menu">
       <button data-act="resume" class="t-primary">Resume</button>
       <button data-act="stations">Training stations</button>
+      ${this.support.cardboard && !this.support.vr ? '<button data-act="cardboard">Phone VR (Cardboard)</button><button data-act="watch">Watch in phone VR</button>' : ''}
       <button data-act="settings">Settings</button>
       <button data-act="help">How to play</button>
       <button data-act="about">About &amp; licenses</button>
@@ -141,6 +157,8 @@ export class Shell {
       if (a === 'help') this.help();
       if (a === 'about') this.about();
       if (a === 'title') { this.close(); this.showTitle(); }
+      if (a === 'cardboard') this.phoneVR(false);
+      if (a === 'watch') this.phoneVR(true);
     }));
   }
 
@@ -201,6 +219,7 @@ export class Shell {
       <section><h3>Mouse &amp; keyboard</h3><ul><li><b>Drag</b> to look or orbit; <b>scroll</b>, the <b>+ / −</b> buttons or <b>[ ]</b> keys zoom in every view, including walking and the cockpit.</li><li><b>W A S D</b> or <b>arrow keys</b> walk on the ramp and in the cabin. Click the ground to walk there.</li><li><b>Click</b> glowing markers, FOD and litter.</li><li>Flying: <b>arrow keys</b> pitch and bank, <b>+ / −</b> power, <b>Space</b> start/pause, <b>C</b> outside view.</li><li><b>Esc</b> opens this menu.</li></ul></section>
       <section><h3>Touch</h3><ul><li>Drag to look, <b>pinch</b> or tap <b>+ / −</b> to zoom, tap to select or walk.</li><li>Use the on-screen pad and power lever to fly.</li></ul></section>
       <section><h3>VR headset</h3><ul><li><b>Menu panel</b>: it rides on your left controller like a tablet. Point with the right controller and pull the <b>trigger</b> to press its buttons. Tabs: Lesson, Stations, Comfort, Exit VR.</li><li><b>X</b>: show or hide the menu. <b>Y</b>: jump straight to Stations.</li><li><b>Right stick</b>: push forward to aim a teleport, release to jump; push left or right to turn.</li><li><b>Left stick</b>: walk; click the stick to move faster.</li><li><b>Flying</b>: left stick flies, right stick sets power, <b>A</b> starts or stops the engine, <b>B</b> recenters your seat.</li><li>Prefer a floating menu, smooth turning, teleport-only or a seated height? Change it on the panel’s <b>Comfort</b> tab.</li></ul></section>
+      <section><h3>Phone VR (Google Cardboard)</h3><ul><li>On a phone, choose <b>Play in phone VR</b> or <b>Watch in phone VR</b>, turn the phone sideways and put it in your viewer.</li><li><b>Look</b> by turning your head. Hold the centre dot on a marker or menu button to select it, or press the viewer’s button.</li><li><b>Press and hold</b> to walk where you look; <b>tap the floor</b> to walk there; <b>double-tap</b> to recenter.</li><li><b>Flying</b>: tap to start, tilt your head to bank, look up or down to climb or descend.</li><li>Choose <b>Exit VR</b> on the floating menu, or tap ✕, to leave.</li></ul></section>
       <section><h3>Xbox &amp; PlayStation controllers</h3><ul><li>Connect by USB or Bluetooth and press any button.</li><li><b>Left stick</b> walks, <b>right stick</b> looks; click the left stick to run.</li><li><b>A / ✕</b> selects what the centre dot is on. <b>D-pad ← →</b> turns to the next marker.</li><li><b>LT / RT</b> (L2 / R2) zoom; click the right stick to reset.</li><li><b>LB / RB</b> (L1 / R1) previous / next station. <b>Y / △</b> jumps into the lesson panel’s buttons.</li><li><b>Menu / Options</b> pauses; in menus the <b>d-pad</b> moves, <b>A / ✕</b> chooses, <b>B / ○</b> goes back.</li><li><b>Flying</b>: left stick flies, RT / LT power, A / ✕ start or pause, Y / △ cockpit or outside view, right stick looks around.</li></ul></section>
     </div>`, { back, wide: true });
   }
