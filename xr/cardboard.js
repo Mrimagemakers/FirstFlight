@@ -109,9 +109,14 @@ export class Cardboard {
    * Start phone VR. Call straight from a tap: iPhone only lets a page read the motion sensors, and Android
    * only allows full screen, when asked during a user gesture.
    */
-  start({ watch = false } = {}) {
+  start({ watch = false, glasses = null } = {}) {
     if (this.active) return Promise.resolve();
     const lab = this.lab;
+    // smart video glasses (XREAL, VITURE, RayNeo, Rokid…) in 3D mode show the left half of the screen to the
+    // left eye and the right half to the right eye: same stereo drawing, but no lenses, no phone sensors and
+    // the usual mouse, keyboard or controller. 'half' = glasses that stretch each half back to full width.
+    this.glasses = glasses;
+    if (glasses) return this.startGlasses(glasses);
     const perm = (typeof DeviceOrientationEvent !== 'undefined' && DeviceOrientationEvent.requestPermission) ? DeviceOrientationEvent.requestPermission().catch(() => 'denied') : Promise.resolve('granted');
     const de = document.documentElement;
     const fs = de.requestFullscreen ? de.requestFullscreen({ navigationUI: 'hide' }).then(() => { this.wasFull = true; screen.orientation?.lock?.('landscape').catch(() => {}); }).catch(() => {}) : Promise.resolve();
@@ -135,10 +140,33 @@ export class Cardboard {
     });
   }
 
+  startGlasses(kind) {
+    const lab = this.lab;
+    this.active = true; this.watch = false;
+    this.stereo.aspect = kind === 'half' ? 1 : 0.5;
+    this.stereo.eyeSep = 0.064;
+    document.body.classList.add('cardboard', 'glasses');
+    this.overlay.hidden = true;
+    this.device = null;
+    this.saved = { fov: lab.camera.fov, enabled: lab.controls.enabled };
+    this.reticle.visible = true;
+    this.yaw0 = null; this.lastWalkYaw = null; this.bodyYaw = this.baseYaw(); this.extraYaw = 0;
+    lab.ui.vr.visible(true);
+    lab.ui.vr.dirty = true;
+    const de = document.documentElement;
+    const fs = de.requestFullscreen ? de.requestFullscreen({ navigationUI: 'hide' }).then(() => { this.wasFull = true; }).catch(() => {}) : Promise.resolve();
+    lab.resize?.();
+    lab.ui.toast('Smart glasses 3D: click or press A to select · Esc or Menu to leave');
+    return fs;
+  }
+
   stop() {
     if (!this.active) return;
     const lab = this.lab;
     this.active = false;
+    this.glasses = null;
+    this.stereo.aspect = 0.5;
+    document.body.classList.remove('glasses');
     this.tour = null;
     document.body.classList.remove('cardboard');
     this.overlay.hidden = true;
@@ -181,6 +209,13 @@ export class Cardboard {
   update(dt) {
     if (!this.active) return;
     const lab = this.lab, c = lab.controls, cam = lab.camera;
+    if (this.glasses) {
+      // the mouse, keyboard or controller already aim the camera; just keep the menu handy and track the dot
+      cam.updateMatrixWorld();
+      this.placePanel(dt);
+      this.gazeSelect(dt, false);
+      return;
+    }
     const head = this.headRel();
     this.headEuler.setFromQuaternion(head, 'YXZ');
     const key = lab.stationKey;
@@ -258,16 +293,16 @@ export class Cardboard {
     return null;
   }
 
-  gazeSelect(dt) {
+  gazeSelect(dt, dwell = true) {
     const g = this.gaze;
     g.cool = Math.max(0, g.cool - dt);
     const key = this.target();
     if (key !== g.key) { g.key = key; g.t = 0; }
-    if (key && !g.cool && !this.touch.walking) {
+    if (dwell && key && !g.cool && !this.touch.walking) {
       g.t += dt;
       if (g.t >= DWELL) { this.select(); g.t = 0; g.cool = 1.2; g.key = null; }
     }
-    this.setFill(key && !g.cool ? Math.min(1, g.t / DWELL) : 0);
+    this.setFill(dwell && key && !g.cool ? Math.min(1, g.t / DWELL) : 0);
     this.ring.scale.setScalar(key ? 1.5 : 1);
   }
 

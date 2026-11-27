@@ -266,14 +266,22 @@ export class Lab {
 
   // ------------------------------------------------------------------ XR sessions
   async xrSupport() {
-    const out = { vr: false, ar: false };
+    const out = { vr: false, ar: false, glassesAR: false };
     if (!navigator.xr || !isSecureContext) return out;
     try { out.vr = await navigator.xr.isSessionSupported('immersive-vr'); } catch { /* ignore */ }
     try { out.ar = await navigator.xr.isSessionSupported('immersive-ar'); } catch { /* ignore */ }
+    // AR smart glasses: AR without VR on something that isn't a phone or tablet
+    const ua = navigator.userAgent;
+    const handheld = /iPhone|iPad|Mobile|Tablet/i.test(ua) && !/Spectacles|XR|Glass/i.test(ua);
+    out.glassesAR = out.ar && !out.vr && !handheld;
     return out;
   }
 
-  async startXR(mode = 'immersive-vr') {
+  /**
+   * opts.world: in an 'immersive-ar' session (AR smart glasses such as Snap Spectacles or Android XR glasses
+   * that offer AR but not VR), show the whole game world with its sky instead of a model in your room.
+   */
+  async startXR(mode = 'immersive-vr', opts = {}) {
     if (this.renderer.xr.isPresenting) { await this.renderer.xr.getSession().end(); return; }
     const session = await navigator.xr.requestSession(mode, { optionalFeatures: ['local-floor', 'bounded-floor', 'hand-tracking'] });
     this.xrMode = mode;
@@ -284,7 +292,8 @@ export class Lab {
     await this.renderer.xr.setSession(session);
     try { this.renderer.xr.setFoveation(q.xrFoveation ?? 0.5); } catch { /* not supported */ }
     this.controls.enabled = false;
-    if (mode === 'immersive-ar') {
+    this.xrWorld = mode === 'immersive-ar' && !!opts.world;
+    if (mode === 'immersive-ar' && !this.xrWorld) {
       this.arBackup = { background: this.scene.background, sky: this.sky.visible, fog: this.scene.fog };
       this.scene.background = null; this.sky.visible = false; this.scene.fog = null;
       this.station?.enterAR?.(this);
@@ -295,11 +304,11 @@ export class Lab {
     this.ui.vr.visible(true);
     this.ui.onXR(true, mode);
     session.addEventListener('end', () => {
-      if (this.xrMode === 'immersive-ar' && this.arBackup) {
+      if (this.xrMode === 'immersive-ar' && this.arBackup && !this.xrWorld) {
         this.scene.background = this.arBackup.background; this.sky.visible = this.arBackup.sky; this.scene.fog = this.arBackup.fog;
         this.station?.exitAR?.(this);
       }
-      this.xrMode = null;
+      this.xrMode = null; this.xrWorld = false;
       this.rig.position.set(0, 0, 0); this.rig.rotation.set(0, 0, 0);
       this.controls.enabled = true;
       this.controls.restore();

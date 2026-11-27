@@ -194,6 +194,13 @@ export class DesktopControls {
   }
 
   click(e) {
+    if (this.lab.cardboard?.active) {
+      const cb = this.lab.cardboard;
+      if (cb.select()) return;
+      this.raycaster.copy(cb.aim());
+      if (this.mode === 'walk' && this.lab.floors?.length) { const hit = this.raycaster.intersectObjects(this.lab.floors, true)[0]; if (hit) this.walk.target = hit.point.clone(); }
+      return;
+    }
     const rect = this.dom.getBoundingClientRect();
     const ndc = new THREE.Vector2((e.clientX - rect.left) / rect.width * 2 - 1, -(e.clientY - rect.top) / rect.height * 2 + 1);
     this.raycaster.setFromCamera(ndc, this.camera);
@@ -437,9 +444,12 @@ export class XRControls {
     if (!session) return;
     this.axes.left.x = this.axes.left.y = this.axes.right.x = this.axes.right.y = 0;
     for (const hand of ['left', 'right']) { this.prev[hand] = this.buttons[hand]; this.buttons[hand] = []; }
+    // thumbsticks present? Hand tracking, gaze-and-pinch (Vision Pro) and tap-only smart glasses have none
+    this.hasSticks = false;
     for (const src of session.inputSources) {
       const gp = src.gamepad;
       if (!gp) continue;
+      if (!src.hand && gp.axes.length >= 2) this.hasSticks = true;
       const a = gp.axes;
       const x = a.length >= 4 ? a[2] : a[0] || 0;
       const y = a.length >= 4 ? a[3] : a[1] || 0;

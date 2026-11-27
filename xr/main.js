@@ -80,16 +80,31 @@ async function boot() {
   // phone viewers (Google Cardboard and similar "VR box" headsets): split-screen stereo with head tracking
   lab.cardboard = new Cardboard(lab);
   support.cardboard = cardboardCapable() || new URLSearchParams(location.search).has('cardboard');
+  // 3D video glasses usually present a 32:9 screen (e.g. 3840 × 1080) when their 3D mode is on
+  support.wide3D = screen.width / Math.max(1, screen.height) > 3.3;
+  lab.startGlasses = (kind) => {
+    if (kind === 'xr') return lab.startXR('immersive-ar', { world: true }).catch(e => ui.toast('Could not start the glasses: ' + e.message, 'bad'));
+    if (lab.cardboard.active) lab.cardboard.stop();
+    return lab.cardboard.start({ glasses: kind });
+  };
   const vr = $('vrBtn');
   if (support.vr) { vr.disabled = false; vr.textContent = 'Enter VR'; }
+  else if (support.glassesAR) { vr.disabled = false; vr.textContent = 'Play on glasses'; }
   else if (support.cardboard) { vr.disabled = false; vr.textContent = 'Phone VR'; }
   else vr.textContent = navigator.xr ? 'No VR headset found' : 'VR not available here';
   vr.title = support.vr ? 'Open this station in your headset' : support.cardboard ? 'Play with your phone in a Google Cardboard or similar viewer' : 'Open this page in a WebXR browser such as the Meta Quest Browser, or on a phone with a Cardboard viewer, to use VR';
   vr.onclick = () => {
+    if (!support.vr && support.glassesAR) { lab.startGlasses('xr'); return; }
     if (!support.vr && support.cardboard) { lab.cardboard.active ? lab.cardboard.stop() : lab.cardboard.start(); return; }
     lab.startXR('immersive-vr').catch(e => ui.toast('Could not start VR: ' + e.message, 'bad'));
   };
-  addEventListener('keydown', e => { if (e.key === 'Escape' && lab.cardboard.active) lab.cardboard.stop(); });
+  addEventListener('keydown', e => {
+    if (e.key === 'Escape' && lab.cardboard.active) lab.cardboard.stop();
+    // G toggles smart-glasses 3D (side-by-side); Shift+G for half side-by-side glasses
+    if (e.code === 'KeyG' && !e.ctrlKey && !e.metaKey && !['INPUT', 'SELECT', 'TEXTAREA'].includes(document.activeElement?.tagName)) {
+      if (lab.cardboard.active && lab.cardboard.glasses) lab.cardboard.stop(); else lab.startGlasses(e.shiftKey ? 'half' : 'full');
+    }
+  });
   const ar = $('arBtn');
   ar.hidden = !support.ar;
   ar.onclick = async () => { if (!['hangar', 'walkaround'].includes(lab.stationKey)) await lab.go('hangar'); lab.startXR('immersive-ar').catch(e => ui.toast('Could not start AR: ' + e.message, 'bad')); };
@@ -116,6 +131,10 @@ async function boot() {
     else key = 'hangar';
   }
   if (key) await lab.go(key, { sub });
+  // ?glasses=full|half|xr starts smart-glasses mode on the first click; a 32:9 screen suggests 3D glasses
+  const gq = new URLSearchParams(location.search).get('glasses');
+  if (gq) { const go = () => { removeEventListener('click', go, true); lab.startGlasses(['half', 'xr'].includes(gq) ? gq : 'full'); }; addEventListener('click', go, true); }
+  else if (support.wide3D) ui.toast('3D smart glasses detected: press G (or Menu → Smart glasses) to play in 3D');
   // ?cardboard=watch or ?cardboard=play opens straight into phone VR (the first tap starts it)
   const cbq = new URLSearchParams(location.search).get('cardboard');
   if (cbq && support.cardboard && !lab.cardboard.active) {

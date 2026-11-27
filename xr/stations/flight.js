@@ -869,6 +869,16 @@ float fHash(vec2 p){ return fract(sin(dot(p, vec2(41.3, 289.1))) * 43758.5453); 
       const a = lab.xr.axes;
       if (a.left.x || a.left.y) { roll = a.left.x; pitch = a.left.y; }
       if (a.right.y) thr = -a.right.y;
+      // no thumbsticks (hand tracking, smart glasses, Vision Pro): fly with your head. Tilt to bank, look up
+      // or down to climb or descend; power holds at a cruise setting. Pinch or tap starts and pauses.
+      if (!lab.xr.hasSticks && this.running) {
+        const e = new THREE.Euler().setFromQuaternion(lab.renderer.xr.getCamera().quaternion, 'YXZ');
+        if (this.headPitch0 == null) this.headPitch0 = e.x;
+        const dzn = (v, lo, hi) => (Math.abs(v) < lo ? 0 : Math.sign(v) * Math.min(1, (Math.abs(v) - lo) / (hi - lo)));
+        if (!roll) roll = dzn(-e.z, 0.1, 0.45);
+        if (!pitch) pitch = dzn(e.x - this.headPitch0, 0.2, 0.55);
+        if (this.state.throttle < 0.72) thr = Math.max(thr, 1);
+      }
     }
     if (thr) {
       this.state.throttle = THREE.MathUtils.clamp(this.state.throttle + thr * dt * 0.35, 0, 1);
@@ -987,6 +997,13 @@ float fHash(vec2 p){ return fract(sin(dot(p, vec2(41.3, 289.1))) * 43758.5453); 
       if (i <= 2 && !p.missions.includes(i)) { p.missions.push(i); localStorage.setItem('firstflight', JSON.stringify(p)); }
     } catch { /* ignore */ }
     this.panel();
+  }
+
+  /** Pinch / tap / trigger on nothing: start or pause when the headset has no buttons to do it. */
+  xrSelect() {
+    if (this.lab.xr.hasSticks) return;
+    this.headPitch0 = null; // recalibrate "level" to where you are looking now
+    if (this.game?.done) this.game.start(this.game.mode, this.game.course); else this.toggleRun();
   }
 
   update(dt, t, lab) {

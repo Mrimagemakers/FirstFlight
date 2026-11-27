@@ -96,7 +96,7 @@ export class GamepadInput {
       if (hit(B.MENU)) this.lab.ui.vr.toggle('stations');
       if (hit(B.Y)) this.lab.ui.vr.toggle('lesson');
       if (hit(B.B) && this.lab.ui.vr.page !== 'lesson') { this.lab.ui.vr.page = 'lesson'; this.lab.ui.vr.dirty = true; }
-      this.play(gp, down, hit, val, ax, dt, true);
+      this.play(gp, down, hit, val, ax, dt, !this.lab.cardboard.glasses); // glasses: sticks look around as usual
       this.prev = down;
       return;
     }
